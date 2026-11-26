@@ -51,8 +51,8 @@ p{margin:0}
 .head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 .head p{color:var(--muted);max-width:62ch}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-.grid.two{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .row.between{justify-content:space-between}
 .stack{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -587,8 +587,29 @@ function finderCard(r, i) {
     <button class="btn primary" data-act="finderPick" data-id="${i}">Pick this one</button></div>`;
 }
 function parseJSONArray(t) {
-  const a = t.indexOf("["), b = t.lastIndexOf("]"); if (a < 0 || b <= a) return null;
-  try { const v = JSON.parse(t.slice(a, b + 1)); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+  /* Chatbot copy buttons often add Markdown escapes (\[ \] \_), curly quotes, code fences or trailing commas. */
+  const unescaped = String(t || "").replace(/```(?:json)?/gi, "").replace(/\\([\[\]{}_*`#()!>|~+\-.])/g, "$1");
+  const tidied = unescaped.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/,\s*([\]}])/g, "$1");
+  for (const s of [String(t || ""), unescaped, tidied]) {
+    const a = s.indexOf("["), b = s.lastIndexOf("]");
+    if (a >= 0 && b > a) { try { const v = JSON.parse(s.slice(a, b + 1)); if (Array.isArray(v)) return v; } catch (e) {} }
+    const objs = s.match(/\{[^{}]*\}/g); /* objects pasted without the surrounding [ ] */
+    if (objs && objs.length) { try { const v = objs.map(o => JSON.parse(o)); if (v.every(o => o && o.name)) return v; } catch (e) {} }
+  }
+  return null;
+}
+function applyFinder(list) {
+  const F = S.finder;
+  F.results = list.slice(0, 5).map(normalizeFind).sort((a, b) => productScore(b).score - productScore(a).score || econ(b).affiliate - econ(a).affiliate);
+  F.seen.push(...F.results.map(r => r.name)); F.grounded = !!F.data.trim(); UI.product = null; TAB = "products";
+}
+function finderRetry(text) {
+  openForm("Couldn't read that answer", `<p class="small">The app needs the answer as a list of products in JSON, starting with <span class="mono">[</span> and ending with <span class="mono">]</span>. Your paste is below: make sure it's the whole answer, fix anything cut off, then try again. You can also ask the chatbot "Reply with only the JSON array".</p>
+    <textarea id="frText" style="min-height:200px">${esc(text)}</textarea>`, "Try again", () => {
+    const t = $("#frText").value, list = parseJSONArray(t);
+    if (!list || !list.length) { toast("Still couldn't read it"); setTimeout(() => finderRetry(t), 0); return; }
+    applyFinder(list); save(["finder"]); render(); toast(`Found ${Math.min(5, list.length)} products`);
+  });
 }
 function normalizeFind(o) {
   const sat = ["low", "medium", "high"].includes(String(o.saturation).toLowerCase()) ? String(o.saturation).toLowerCase() : "medium";
@@ -612,9 +633,8 @@ ${F.data ? "Choose ONLY from, or very close to, this trending product data the s
 Answer with ONLY a JSON array of 5 objects and no other text. Keys: name (generic product type, no brand names), why (one sentence on why it sells on video), saturation ("low", "medium" or "high"), saturationWhy (one sentence), price (number, suggested US sale price), landed (number, estimated landed cost per unit), shipping (number, estimated shipping cost per order to the buyer, 0 if the seller usually prices it in), buyer (who buys it), problem (the problem it solves), specs (short), hook (one video hook under 10 words, no false claims), risk (the biggest thing that could go wrong), visual (true/false), light (true/false), restricted (true/false).`;
   ai(prompt, more ? "Finding 5 more products" : "Finding 5 products", t => {
     const list = parseJSONArray(t);
-    if (!list || !list.length) throw new Error("the answer wasn't in the expected format. Try again.");
-    F.results = list.slice(0, 5).map(normalizeFind).sort((a, b) => productScore(b).score - productScore(a).score || econ(b).affiliate - econ(a).affiliate);
-    F.seen.push(...F.results.map(r => r.name)); F.grounded = !!F.data.trim(); UI.product = null; TAB = "products";
+    if (!list || !list.length) { setTimeout(() => finderRetry(t), 0); return; }
+    applyFinder(list);
   });
 }
 
