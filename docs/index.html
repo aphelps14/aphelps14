@@ -252,10 +252,10 @@ function scanText(text) {
 const LS = "ocs.v1", LS_KEY = "ocs.gemini", LS_TAB = "ocs.tab";
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
-const KEYS = ["settings", "plan", "products", "hooks", "videos", "listings", "creators", "lives", "metrics", "replies"];
+const KEYS = ["settings", "plan", "products", "hooks", "videos", "listings", "creators", "lives", "metrics", "replies", "finder"];
 function blank() {
   return { settings: { aiMode: "auto", geminiModel: "gemini-2.5-flash", referralPct: 8, commissionPct: 15, startDate: "", brand: "", niche: "", tier: "Beginner", ahr: 200, theme: "" },
-    plan: {}, products: [], hooks: [], videos: [], listings: [], creators: [], lives: [], metrics: [], replies: [], meta: { at: 0 } };
+    plan: {}, products: [], hooks: [], videos: [], listings: [], creators: [], lives: [], metrics: [], replies: [], finder: { niche: "", min: 15, max: 50, data: "", results: [], seen: [], grounded: false }, meta: { at: 0 } };
 }
 function example() {
   const S = blank(); const p = uid();
@@ -277,7 +277,9 @@ function example() {
 }
 function normalize(S) {
   const b = blank(); S = Object.assign(b, S || {}); S.settings = Object.assign(blank().settings, S.settings || {});
-  for (const k of KEYS) if (k !== "settings" && k !== "plan" && !Array.isArray(S[k])) S[k] = [];
+  for (const k of KEYS) if (!["settings", "plan", "finder"].includes(k) && !Array.isArray(S[k])) S[k] = [];
+  S.finder = Object.assign(blank().finder, S.finder && typeof S.finder === "object" ? S.finder : {});
+  if (!Array.isArray(S.finder.results)) S.finder.results = []; if (!Array.isArray(S.finder.seen)) S.finder.seen = [];
   if (!S.plan || typeof S.plan !== "object") S.plan = {};
   S.meta = S.meta || { at: 0 };
   return S;
@@ -545,12 +547,77 @@ function vProducts() {
   const sel = prod(UI.product) || S.products[0];
   const ranked = [...S.products].map(p => ({ p, ...productScore(p), e: econ(p) })).sort((a, b) => b.score - a.score || b.e.organic - a.e.organic);
   return `<div class="head"><div class="stack"><h1>Products</h1><p>Score every candidate before ordering a sample. Best first product: obvious benefit in 3 seconds, sells for $15–$50.</p></div>
-    <button class="btn primary" data-act="addProduct">Add product</button></div>
+    <div class="row"><button class="btn primary ai" data-act="findProducts">Find products</button><button class="btn ghost" data-act="addProduct">Add my own</button></div></div>
+    ${finderHTML()}
     ${S.products.length ? `<section class="card"><div class="tbl"><table><thead><tr><th>Product</th><th>Score</th><th>Price</th><th>Profit/sale</th><th>w/ affiliate</th><th>Status</th><th></th></tr></thead><tbody>
       ${ranked.map(({ p, score, e }) => `<tr><td>${esc(p.name)}${ex(p)}</td><td><span class="pill ${score >= 5 ? "good" : score >= 4 ? "warn" : "bad"}">${score}/6</span></td><td class="num">${money(e.price)}</td><td class="num">${money(e.organic)}</td><td class="num">${money(e.affiliate)}</td><td>${esc(p.status || "idea")}</td><td><button class="btn sm" data-act="pickProduct" data-id="${p.id}">${sel && sel.id === p.id ? "Open ✓" : "Open"}</button></td></tr>`).join("")}
-    </tbody></table></div><p class="small muted">Profit uses your ${num(S.settings.referralPct)}% referral fee and ${num(S.settings.commissionPct)}% affiliate commission from Settings. Check your settlement statement for your real rate.</p></section>` : `<div class="empty">No products yet. Add one you're considering and the studio scores it, works out your margin and writes your research prompts.</div>`}
+    </tbody></table></div><p class="small muted">Profit uses your ${num(S.settings.referralPct)}% referral fee and ${num(S.settings.commissionPct)}% affiliate commission from Settings. Check your settlement statement for your real rate.</p></section>` : `<div class="empty">No products yet. Click “Find products” for 5 options that fit the guide's rules, or add one you already have in mind.</div>`}
     ${sel ? productDetail(sel) : ""}`;
 }
+/* ---- Product finder ---- */
+function finderLinks(name) {
+  const q = encodeURIComponent(name);
+  return [["TikTok", "https://www.tiktok.com/search?q=" + q], ["Google Trends", "https://trends.google.com/trends/explore?geo=US&q=" + q],
+    ["Amazon reviews", "https://www.amazon.com/s?k=" + q], ["AliExpress price", "https://www.aliexpress.com/wholesale?SearchText=" + q]];
+}
+function finderHTML() {
+  const F = S.finder; if (!F.results.length) return "";
+  return `<section class="card" style="border-color:var(--accent)"><div class="row between"><h2>5 products to consider</h2>
+      <span class="pill ${F.grounded ? "good" : "warn"}">${F.grounded ? "Picked from trend data you pasted" : "AI ideas: verify before ordering"}</span></div>
+    <p class="small muted">Prices, costs and saturation are AI estimates. Open the links on each one to see real videos, sales and supplier prices before you order a sample. Profit uses your ${num(S.settings.referralPct)}% referral fee and ${num(S.settings.commissionPct)}% commission.</p>
+    <div class="grid">${F.results.map((r, i) => finderCard(r, i)).join("")}</div>
+    <div class="alert acc"><div class="grow"><b>Pick one to start researching it</b>, or search for 5 different options. Products already shown won't repeat.</div>
+      <div class="row"><button class="btn primary ai" data-act="findMore">Find 5 more</button><button class="btn sm ghost" data-act="finderClear">Dismiss</button></div></div></section>`;
+}
+function finderCard(r, i) {
+  const e = econ(r), sc = productScore(r).score, sat = { low: "good", medium: "warn", high: "bad" }[r.saturation] || "";
+  const line = (l, v, cls = "") => `<div class="row between"><span class="small">${l}</span><span class="num ${cls}">${v}</span></div>`;
+  const fails = [];
+  if (e.price < num(S.finder.min) || e.price > num(S.finder.max)) fails.push("price outside your range");
+  if (e.landedPct >= 30) fails.push("cost over 30% of price");
+  if (e.affiliate <= 0) fails.push("loses money on affiliate sales");
+  if (!r.checks.allowed) fails.push("may be a restricted category; check Seller Center before ordering");
+  return `<div class="item"><h3>${esc(r.name)}</h3>
+    <div class="row"><span class="pill ${sat}">Saturation: ${esc(r.saturation)}</span><span class="pill ${sc >= 5 ? "good" : sc >= 4 ? "warn" : "bad"}">Checklist ${sc}/6</span></div>
+    <p class="small">${esc(r.why)}</p>${r.saturationWhy ? `<p class="small muted">${esc(r.saturationWhy)}</p>` : ""}
+    <div class="stack" style="gap:2px">${line("Est. sale price", money(e.price))}${line("Est. landed cost", money(e.landed))}${line("Profit per sale", money(e.organic), e.organic > 0 ? "" : "bad")}${line("With affiliate commission", money(e.affiliate))}${line("Margin", pct(e.margin))}</div>
+    ${fails.length ? `<div class="alert warn"><div class="grow small">${esc(fails.join("; "))}</div></div>` : ""}
+    ${r.hook ? `<p class="small"><b>Hook idea:</b> ${esc(r.hook)}</p>` : ""}${r.risk ? `<p class="small"><b>Watch out:</b> ${esc(r.risk)}</p>` : ""}
+    <div class="row">${finderLinks(r.name).map(([l, u]) => `<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener">${l}</a>`).join("")}</div>
+    <button class="btn primary" data-act="finderPick" data-id="${i}">Pick this one</button></div>`;
+}
+function parseJSONArray(t) {
+  const a = t.indexOf("["), b = t.lastIndexOf("]"); if (a < 0 || b <= a) return null;
+  try { const v = JSON.parse(t.slice(a, b + 1)); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+}
+function normalizeFind(o) {
+  const sat = ["low", "medium", "high"].includes(String(o.saturation).toLowerCase()) ? String(o.saturation).toLowerCase() : "medium";
+  const str = (v, n = 300) => String(v ?? "").slice(0, n);
+  return { name: str(o.name, 120) || "Unnamed product", why: str(o.why), saturation: sat, saturationWhy: str(o.saturationWhy), price: num(o.price), landed: num(o.landed), shipping: num(o.shipping),
+    buyer: str(o.buyer, 150), problem: str(o.problem, 200), specs: str(o.specs), hook: str(o.hook, 120), risk: str(o.risk),
+    checks: { wow: o.visual !== false, light: o.light !== false, allowed: o.restricted !== true, demand: sat !== "high" } };
+}
+function runFinder(more) {
+  const F = S.finder;
+  const avoid = [...new Set([...F.seen, ...S.products.filter(p => !p.example).map(p => p.name)])].slice(-60);
+  const prompt = `You help a new US TikTok Shop seller choose a first product to sell.${F.niche ? " Niche: " + F.niche + "." : " Any niche."}
+Find 5 products that:
+- are trending or growing on TikTok Shop in the US but NOT oversaturated (several videos selling it, not hundreds of shops with the identical listing)
+- sell for $${num(F.min)}–$${num(F.max)}
+- have a landed cost (product plus shipping to the seller, buying 50–100 units) under 30% of the sale price, leaving profit after a ${num(S.settings.referralPct)}% referral fee and a ${num(S.settings.commissionPct)}% creator commission
+- show an obvious result on camera within 3 seconds
+- are light and unbreakable
+- are NOT restricted: no supplements or anything ingested, no cosmetics or skincare with medical claims, no weapons, no medical devices, no children's products that need safety certification, no branded or licensed items
+${F.data ? "Choose ONLY from, or very close to, this trending product data the seller copied from TikTok tools today. Use its sales and video numbers to judge saturation:\n" + F.data.slice(0, 12000) + "\n" : "You have no live data, so pick products with steady video-driven demand, and be honest about saturation.\n"}${avoid.length ? "Do not suggest any of these or close variants: " + avoid.join("; ") + "\n" : ""}
+Answer with ONLY a JSON array of 5 objects and no other text. Keys: name (generic product type, no brand names), why (one sentence on why it sells on video), saturation ("low", "medium" or "high"), saturationWhy (one sentence), price (number, suggested US sale price), landed (number, estimated landed cost per unit), shipping (number, estimated shipping cost per order to the buyer, 0 if the seller usually prices it in), buyer (who buys it), problem (the problem it solves), specs (short), hook (one video hook under 10 words, no false claims), risk (the biggest thing that could go wrong), visual (true/false), light (true/false), restricted (true/false).`;
+  ai(prompt, more ? "Finding 5 more products" : "Finding 5 products", t => {
+    const list = parseJSONArray(t);
+    if (!list || !list.length) throw new Error("the answer wasn't in the expected format. Try again.");
+    F.results = list.slice(0, 5).map(normalizeFind).sort((a, b) => productScore(b).score - productScore(a).score || econ(b).affiliate - econ(a).affiliate);
+    F.seen.push(...F.results.map(r => r.name)); F.grounded = !!F.data.trim(); UI.product = null; TAB = "products";
+  });
+}
+
 function productDetail(p) {
   const { checks, score } = productScore(p), e = econ(p);
   const b = (f, label, type = "text", extra = "") => `<label class="f">${label}<input type="${type}" ${type === "number" ? 'step="0.01" inputmode="decimal"' : ""} id="p-${f}-${p.id}" data-bind="products:${p.id}:${f}" value="${esc(p[f] ?? "")}" ${extra}></label>`;
@@ -871,6 +938,30 @@ const A = {
   start() { S.settings.startDate = todayISO(); save(["settings"]); render(); toast("Day 1 starts today"); },
   clearEx() { for (const k of ["products", "videos", "hooks", "creators", "listings"]) S[k] = S[k].filter(x => !x.example); UI.product = UI.video = null; save(); render(); toast("Examples cleared"); },
   addProduct() { const p = { id: uid(), name: "New product", price: "", landed: "", shipping: "", status: "idea", checks: {}, research: { comments: "", reviews: "", insights: "" }, suppliers: [] }; S.products.push(p); UI.product = p.id; save(["products"]); render(); setTimeout(() => { const el = $(`#p-name-${p.id}`); if (el) { el.focus(); el.select(); } }, 30); },
+  findProducts() {
+    const F = S.finder;
+    openForm("Find products", `<p class="small muted">The AI suggests 5 products that fit the guide: trending but not oversaturated, $15–$50, landed cost under 30%, easy to show on video, not restricted.</p>
+      <div class="fields"><label class="f">Niche (optional)<input type="text" id="fnNiche" value="${esc(F.niche || S.settings.niche)}" placeholder="e.g. kitchen, pets, car, desk setup"></label>
+        <label class="f">Lowest price $<input type="number" id="fnMin" value="${esc(F.min)}"></label><label class="f">Highest price $<input type="number" id="fnMax" value="${esc(F.max)}"></label></div>
+      <details${F.data ? " open" : ""}><summary class="small">Use live TikTok trend data (recommended)</summary><div class="stack" style="margin-top:8px">
+        <p class="small muted">Open Top Products in TikTok's free Creative Center (or a free tier of Kalodata or FastMoss), set the country to United States, select the list and copy it, then paste below. The AI then picks from what's really selling now.</p>
+        <div class="row"><a class="btn sm" href="https://ads.tiktok.com/business/creativecenter/top-products/pc/en" target="_blank" rel="noopener">Creative Center: Top products</a><a class="btn sm" href="https://www.kalodata.com/" target="_blank" rel="noopener">Kalodata</a><a class="btn sm" href="https://www.fastmoss.com/" target="_blank" rel="noopener">FastMoss</a></div>
+        <textarea id="fnData" placeholder="Paste trending product data here (optional)">${esc(F.data)}</textarea></div></details>`, "Find 5 products", () => {
+      F.niche = $("#fnNiche").value.trim(); F.min = num($("#fnMin").value) || 15; F.max = num($("#fnMax").value) || 50; F.data = $("#fnData").value.trim(); F.seen = []; F.results = [];
+      if (F.niche && !S.settings.niche) S.settings.niche = F.niche;
+      save(["finder", "settings"]); runFinder(false);
+    });
+  },
+  findMore() { runFinder(true); },
+  finderClear() { S.finder.results = []; save(["finder"]); render(); },
+  finderPick(i) {
+    const r = S.finder.results[+i]; if (!r) return;
+    const p = { id: uid(), name: r.name, price: r.price || "", landed: r.landed || "", shipping: r.shipping || "", status: "researching", checks: Object.assign({}, r.checks), buyer: r.buyer, problem: r.problem, specs: r.specs,
+      research: { comments: "", reviews: "", insights: `Product finder notes (AI estimates, check them):\nWhy it sells: ${r.why}\nSaturation: ${r.saturation}. ${r.saturationWhy}\nWatch out: ${r.risk}` }, angles: "", suppliers: [] };
+    S.products.push(p); if (r.hook) S.hooks.push({ id: uid(), productId: p.id, text: r.hook, style: "finder", used: false });
+    S.finder.results = []; UI.product = p.id; save(["products", "hooks", "finder"]); render();
+    toast("Added. Next: check it on TikTok, then mine the comments.");
+  },
   pickProduct(id) { UI.product = id; render(); },
   delProduct(id) { if (!confirmTwice("delProduct" + id)) return; S.products = S.products.filter(p => p.id !== id); UI.product = null; save(["products"]); render(); },
   addSupplier(id) { prod(id).suppliers = prod(id).suppliers || []; prod(id).suppliers.push({ id: uid(), name: "Supplier " + (prod(id).suppliers.length + 1) }); save(["products"]); render(); },
