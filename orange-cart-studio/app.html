@@ -1,0 +1,1071 @@
+<title>Orange Cart Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a seller's workbench. Fixed tab rail (side on desktop, bottom bar on phones), one working panel at a time. */
+:root{
+  --bg:#f4f5f8; --panel:#ffffff; --sunk:#eceef3; --line:#dcdfe7; --fg:#171a24; --muted:#5e6475;
+  --accent:#ff5a1f; --accent-fg:#ffffff; --accent-soft:#ffe6dc; --ink:#1c2340;
+  --good:#16804a; --good-soft:#dcf3e6; --warn:#a65d00; --warn-soft:#fff0d6; --bad:#c42b3b; --bad-soft:#fde2e5;
+  --f-display:"Bricolage Grotesque","Figtree",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10131b; --panel:#181c27; --sunk:#202534; --line:#2c3244; --fg:#eef0f6; --muted:#9aa1b5;
+  --accent:#ff6a33; --accent-fg:#1a0d06; --accent-soft:#3d2216; --ink:#c9d1f2;
+  --good:#4fd18b; --good-soft:#163527; --warn:#f0b44c; --warn-soft:#3a2c12; --bad:#ff7a87; --bad-soft:#3d1b21; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10131b; --panel:#181c27; --sunk:#202534; --line:#2c3244; --fg:#eef0f6; --muted:#9aa1b5;
+  --accent:#ff6a33; --accent-fg:#1a0d06; --accent-soft:#3d2216; --ink:#c9d1f2;
+  --good:#4fd18b; --good-soft:#163527; --warn:#f0b44c; --warn-soft:#3a2c12; --bad:#ff7a87; --bad-soft:#3d1b21; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:1.75rem;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.2rem;font-weight:600}
+h3{font-size:1rem;font-weight:600}
+p{margin:0}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100%}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;background:var(--ink);color:#fff;padding:20px 12px;display:flex;flex-direction:column;gap:4px}
+:root .rail{--rail-fg:#e8ebf7}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rail{background:#0b0e15;border-right:1px solid var(--line)}}
+:root[data-theme="dark"] .rail{background:#0b0e15;border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;font-family:var(--f-display);font-weight:800;font-size:1.1rem;color:#fff}
+.brand svg{flex:none}
+.tab{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#c8cde0;text-align:left;cursor:pointer;font-weight:500}
+.tab:hover{background:rgba(255,255,255,.07);color:#fff}
+.tab[aria-current="true"]{background:var(--accent);color:#fff}
+.tab .n{margin-left:auto;font-family:var(--f-mono);font-size:.72rem;background:rgba(255,255,255,.14);padding:1px 6px;border-radius:99px}
+.rail .foot{margin-top:auto;font-size:.78rem;color:#9aa2c0;padding:8px}
+.main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.head p{color:var(--muted);max-width:62ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:8px;min-width:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted);min-width:0}
+label.f.inline{flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-weight:500;font-size:.92rem}
+.fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+input[type=text],input[type=number],input[type=date],input[type=password],input[type=url],select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.95rem;color:var(--fg)}
+textarea{min-height:90px;resize:vertical;line-height:1.45}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:600;font-size:.9rem;cursor:pointer;text-decoration:none;color:var(--fg)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ai::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent);transform:rotate(45deg)}
+.btn.primary.ai::before{background:var(--accent-fg)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.sm{padding:4px 9px;font-size:.8rem}
+.btn[disabled]{opacity:.5;cursor:default}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:700;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;border-left:4px solid var(--muted);background:var(--sunk);font-size:.92rem}
+.alert.bad{border-color:var(--bad);background:var(--bad-soft)}
+.alert.warn{border-color:var(--warn);background:var(--warn-soft)}
+.alert.good{border-color:var(--good);background:var(--good-soft)}
+.alert.acc{border-color:var(--accent);background:var(--accent-soft)}
+.alert .grow{flex:1;min-width:0}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{text-align:left;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td input,td select{min-width:70px}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.kpi .v{font-family:var(--f-display);font-weight:800;font-size:1.7rem;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.check{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.check input{margin-top:3px}
+.check.done span{color:var(--muted);text-decoration:line-through}
+.bar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.item{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--panel);min-width:0}
+.item.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.out{white-space:pre-wrap;background:var(--sunk);border-radius:8px;padding:12px;font-size:.92rem;max-height:420px;overflow:auto}
+.segs{display:flex;flex-wrap:wrap;gap:4px;background:var(--sunk);padding:4px;border-radius:9px;width:fit-content;max-width:100%}
+.segs button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-weight:600;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.segs button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.hook{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.hook:last-child{border-bottom:0}
+.hook .t{flex:1;min-width:0}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+.steps{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.steps div{background:var(--sunk);border-radius:8px;padding:8px;text-align:center;font-size:.8rem}
+.steps b{display:block;font-family:var(--f-display);font-size:1.3rem}
+dialog{border:0;border-radius:14px;padding:0;width:min(720px,calc(100vw - 24px));max-height:calc(100vh - 40px);background:var(--panel);color:var(--fg);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,12,20,.55)}
+.dlg{padding:20px;display:flex;flex-direction:column;gap:12px}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:99px;font-weight:600;font-size:.9rem;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #toast{background:#2c3244}}
+:root[data-theme="dark"] #toast{background:#2c3244}
+.score{font-family:var(--f-display);font-weight:800;font-size:1.4rem}
+details summary{cursor:pointer;font-weight:600}
+.ex{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:4px}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .rail{position:fixed;inset:auto 0 0 0;top:auto;height:auto;flex-direction:row;overflow-x:auto;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));z-index:20;gap:2px}
+  .brand,.rail .foot{display:none}
+  .tab{flex-direction:column;gap:2px;font-size:.7rem;padding:6px 8px;width:auto;min-width:62px;align-items:center}
+  .tab .n{display:none}
+  .grid.two{grid-template-columns:1fr}
+  h1{font-size:1.45rem}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.tab{transition:background .15s,border-color .15s}}
+</style>
+
+<div class="app">
+  <nav class="rail" id="rail" aria-label="Sections"></nav>
+  <main class="main"><div class="wrap" id="view"></div></main>
+</div>
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div id="toast" hidden></div>
+<input type="file" id="fileImport" accept="application/json,.json" hidden>
+<input type="file" id="fileImages" accept="image/*" multiple hidden>
+
+<script>
+"use strict";
+/* ============ helpers ============ */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const money = n => (n < 0 ? "-$" : "$") + Math.abs(n).toFixed(2);
+const pct = n => (isFinite(n) ? n.toFixed(1) : "0.0") + "%";
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const daysBetween = (a, b) => Math.floor((new Date(b + "T12:00") - new Date(a + "T12:00")) / 864e5);
+const words = s => (String(s || "").trim().match(/\S+/g) || []).length;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast("Copied"); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Copied"); } catch (_) { toast("Select the text and copy it manually"); } ta.remove(); }
+}
+
+/* ============ guide data ============ */
+const PLAN = [
+  { week: 1, name: "Set up and pick a product", tasks: [
+    ["w1a", "Create the TikTok Business account and apply for the shop with matching documents", "settings"],
+    ["w1b", "Research 10 products with the free tools; score them on the checklist; pick the top 3", "products"],
+    ["w1c", "Order samples of the top 2", "products"],
+    ["w1d", "Post 1 video a day in your niche (no product yet) to warm up the account", "content"]] },
+  { week: 2, name: "List and start posting", tasks: [
+    ["w2a", "Choose the winning sample; order 30–100 units", "products"],
+    ["w2b", "Make listing photos and copy with the AI tools; submit the listing", "listings"],
+    ["w2c", "Batch-film and edit 14 videos with the weekly workflow", "content"],
+    ["w2d", "Post 2 videos a day with the product link", "content"]] },
+  { week: 3, name: "Add creators", tasks: [
+    ["w3a", "Open an affiliate plan at 15–20% and invite 20 creators with sample offers", "creators"],
+    ["w3b", "Make reply videos from the best comments", "content"],
+    ["w3c", "Remake your top 2 videos with 5 new hooks each", "content"]] },
+  { week: 4, name: "Double down", tasks: [
+    ["w4a", "Cut formats with under-average 3-second hold; keep the winners", "content"],
+    ["w4b", "Reorder stock if sell-through is on pace; add a second product or color variation", "products"],
+    ["w4c", "Review fees and real profit per unit from your settlement statements", "metrics"]] }
+];
+const SETUP = [
+  ["s1", "Create a TikTok account for the brand and switch it to a Business account"],
+  ["s2", "Register at TikTok Shop Seller Center with a phone and email not used on another shop"],
+  ["s3", "Choose Individual or Business and upload matching ID, SSN/ITIN or EIN, W-9 and bank account in the same name"],
+  ["s4", "Add warehouse and return addresses; pick seller shipping or Fulfilled by TikTok"],
+  ["s5", "Link the TikTok account to the shop as its Official Shop account"],
+  ["s6", "Double-check: names and addresses match on every document; IRS letter uploaded as the real PDF, not a screenshot"]
+];
+const PRODUCT_CHECKS = [
+  ["wow", "Visual wow", "The result shows on camera in 3 seconds"],
+  ["price", "Price $15–$50", "Impulse buy with room for fees and commission"],
+  ["landed", "Landed cost under 30%", "Product plus shipping to you"],
+  ["light", "Light and unbreakable", "Cheap to ship, few damage returns"],
+  ["allowed", "Not restricted", "No supplements, medical-claim cosmetics, weapons or approval-gated categories"],
+  ["demand", "Proven demand, not saturated", "Several videos selling it, not hundreds of identical listings"]
+];
+const FORMATS = [
+  ["problem", "Problem → solution", "Show the annoying problem, then the product fixing it", "10–20s"],
+  ["tried", "“I tried…” honest review", "Unbox, use it, say one real downside and why you still like it", "20–45s"],
+  ["demo", "Satisfying demo", "No talking; close-up of the product working, ASMR sound", "7–15s"],
+  ["reply", "Reply to a comment", "Use reply-with-video to answer a real question or objection", "15–30s"],
+  ["three", "3 reasons / 3 uses", "Fast list with on-screen text, one use per cut", "15–25s"]
+];
+const HOOK_FORMULAS = [
+  "If you [have this problem], stop scrolling.",
+  "I didn't think this would work, but…",
+  "The $[price] thing that fixed my [problem].",
+  "Things I'd buy again from TikTok Shop: #1…",
+  "(Start mid-action: first frame is the product already working)"
+];
+const VIDEO_STAGES = ["idea", "filmed", "edited", "scheduled", "posted"];
+const CREATOR_STAGES = ["found", "invited", "sample sent", "posted", "selling", "passed"];
+const TARGETS = [
+  { k: "hold3", label: "3-second hold rate", unit: "%", where: "TikTok Studio analytics", target: "Over 50%", ok: v => v >= 50, near: v => v >= 40 },
+  { k: "ctr", label: "Product link click-through", unit: "%", where: "Seller Center / video analytics", target: "1–3% of viewers", ok: v => v >= 1, near: v => v >= 0.6 },
+  { k: "conv", label: "Conversion (orders ÷ product page views)", unit: "%", where: "Seller Center", target: "2–5%", ok: v => v >= 2, near: v => v >= 1.2 },
+  { k: "profit", label: "Profit per order after all fees", unit: "$", where: "Settlement statement", target: "Positive at the full referral rate", ok: v => v > 0, near: v => v > -1 },
+  { k: "late", label: "Late dispatch rate", unit: "%", where: "Account Health", target: "Under 10%, aim for 0%", ok: v => v === 0, near: v => v < 10, lowerBetter: true },
+  { k: "aff", label: "Affiliate videos posted", unit: "", where: "Affiliate dashboard", target: "5+ in the first month", ok: v => v >= 5, near: v => v >= 2 }
+];
+const TIERS = { Beginner: 50, Standard: 100, Premium: 200, Pro: Infinity };
+
+/* ============ compliance scanner (rules from the guide) ============ */
+const RULES = [
+  { re: /https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|shop|store|co)\b/i, sev: "bad", msg: "Off-platform link or web address. Links and URLs get content removed." },
+  { re: /\b(amazon|walmart|etsy|shopify|ebay|temu|aliexpress|target\.com|my website|link in (my )?bio)\b/i, sev: "bad", msg: "Mentions another marketplace or sends buyers off TikTok." },
+  { re: /\bqr[ -]?code\b/i, sev: "bad", msg: "QR codes count as off-platform redirection." },
+  { re: /\bdupes?\b/i, sev: "bad", msg: "“Dupe” claims are prohibited." },
+  { re: /\b(best[- ]?sell(er|ing)|#1 (best|rated|selling)|number one (selling|rated)|top[- ]rated)\b/i, sev: "bad", msg: "“Best seller” style claims are not allowed in listings and are risky in videos." },
+  { re: /\b(cures?|cured|heals?|treats?|treatment for|diagnos\w*|prevents? (disease|illness|cancer|infection)|medical[- ]grade|clinically (proven|tested)|fda[- ]approved|doctor recommended)\b/i, sev: "bad", msg: "Health or medical claim. These are restricted and often category-gated." },
+  { re: /\b(weight[- ]?loss|lose (\d+ )?(lbs?|pounds|weight)|burns? fat|fat[- ]burn\w*|slimming|detox|anti[- ]?aging|reverses? aging|boosts? (immunity|metabolism))\b/i, sev: "bad", msg: "Weight-loss, detox or anti-aging claim. Restricted." },
+  { re: /\b(pain relief|relieves? pain|anxiety|depression|insomnia|acne cure|eczema|arthritis)\b/i, sev: "bad", msg: "Condition claim. Only allowed with approval and proof." },
+  { re: /\bbefore (and|&|\/|vs\.?) after\b/i, sev: "warn", msg: "Before/after: only post results you can prove with real footage." },
+  { re: /\b(guarantee[ds]?|100% (safe|effective|natural)|miracle|instant results?|never fails|works for everyone|risk[- ]free)\b/i, sev: "warn", msg: "Absolute claim. Soften it or make sure you can back it up." },
+  { re: /\b(my customers (all )?say|thousands of (happy )?customers|everyone (is )?(loves|buying))\b/i, sev: "warn", msg: "Testimonial-style claim. Only use real, verifiable customer experiences." },
+  { re: /\b(free shipping forever|lowest price (ever|anywhere)|cheapest (anywhere|on tiktok))\b/i, sev: "warn", msg: "Price claim that is hard to prove." }
+];
+function scanText(text) {
+  const out = []; const t = String(text || "");
+  if (!t.trim()) return out;
+  for (const r of RULES) { const m = t.match(r.re); if (m) out.push({ sev: r.sev, msg: r.msg, hit: m[0] }); }
+  const caps = (t.match(/\b[A-Z]{4,}\b/g) || []).filter(w => !["USB", "LED", "HDMI", "USA", "ASMR", "BPA"].includes(w));
+  if (caps.length >= 3) out.push({ sev: "warn", msg: "Lots of ALL CAPS words. Listings reject all-caps titles.", hit: caps.slice(0, 3).join(", ") });
+  return out;
+}
+
+/* ============ state + storage ============ */
+const LS = "ocs.v1", LS_KEY = "ocs.gemini", LS_TAB = "ocs.tab";
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const KEYS = ["settings", "plan", "products", "hooks", "videos", "listings", "creators", "lives", "metrics", "replies"];
+function blank() {
+  return { settings: { aiMode: "auto", geminiModel: "gemini-2.5-flash", referralPct: 8, commissionPct: 15, startDate: "", brand: "", niche: "", tier: "Beginner", ahr: 200, theme: "" },
+    plan: {}, products: [], hooks: [], videos: [], listings: [], creators: [], lives: [], metrics: [], replies: [], meta: { at: 0 } };
+}
+function example() {
+  const S = blank(); const p = uid();
+  S.products.push({ id: p, example: true, name: "Example: Collapsible sink caddy", price: 19.99, landed: 4.8, shipping: 4.5, status: "testing",
+    checks: { wow: true, price: true, landed: true, light: true, allowed: true, demand: false }, buyer: "renters with tiny kitchens", problem: "wet sponges and clutter around the sink",
+    specs: "Silicone, folds flat, drains into sink, fits sponges and brushes, 9 x 4 in", research: { comments: "", reviews: "", insights: "" }, angles: "", suppliers: [
+      { id: uid(), name: "Example supplier A", p50: 3.9, p500: 2.6, sample: 12, lead: 9, notes: "" },
+      { id: uid(), name: "Example supplier B", p50: 3.4, p500: 2.9, sample: 20, lead: 14, notes: "" }] });
+  const mk = (hook, fmt, views, hold3, orders, d) => ({ id: uid(), example: true, productId: p, hook, format: fmt, script: "", caption: "", status: "posted", date: d, views, hold3, ctr: 1.4, orders,
+    flags: { cart: true, commercial: true, aiVoice: false, aiVisual: false, aiLabel: false } });
+  const d = n => { const x = new Date(); x.setDate(x.getDate() - n); return x.toISOString().slice(0, 10); };
+  S.videos.push(mk("If your sponge is always soaking wet, stop scrolling.", "problem", 4200, 58, 6, d(5)),
+    mk("I didn't think a $20 sink caddy would change anything, but…", "tried", 1100, 41, 1, d(4)),
+    mk("(no talking) water draining off a folded caddy", "demo", 18500, 66, 21, d(3)),
+    mk("3 ways I use this in a 300 sq ft apartment", "three", 900, 37, 0, d(2)));
+  ["The $20 thing that fixed my gross sink.", "My landlord asked where I got this.", "I tried the viral sink caddy so you don't have to."].forEach(t => S.hooks.push({ id: uid(), example: true, productId: p, text: t, style: "curiosity", used: false }));
+  S.creators.push({ id: uid(), example: true, handle: "@example.kitchen", followers: 12000, niche: "small-space cleaning", status: "sample sent", commission: 20, sentOn: d(9), videos: 0, gmv: 0, notes: "", invite: "" });
+  return S;
+}
+function normalize(S) {
+  const b = blank(); S = Object.assign(b, S || {}); S.settings = Object.assign(blank().settings, S.settings || {});
+  for (const k of KEYS) if (k !== "settings" && k !== "plan" && !Array.isArray(S[k])) S[k] = [];
+  if (!S.plan || typeof S.plan !== "object") S.plan = {};
+  S.meta = S.meta || { at: 0 };
+  return S;
+}
+let S;
+try { const raw = lsGet(LS); S = normalize(raw ? JSON.parse(raw) : example()); } catch (e) { S = normalize(example()); }
+
+/* Cloud sync: private per-viewer docs when opened on claude.ai */
+const Cloud = {
+  db: null, uid: null, state: "local", timer: null, dirty: new Set(KEYS),
+  async init() {
+    if (!window.claude || !window.claude.use) return;
+    try {
+      const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+      if (!db || !user) return;
+      const id = await user.id(); if (!id) return;
+      this.db = db; this.uid = id; this.state = "syncing"; renderRail();
+      const snap = await Promise.race([db.collection("data/users/" + id).get(), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 10000))]);
+      let remoteAt = 0; const remote = {};
+      for (const d of snap.docs) { const v = d.data(); if (!v) continue; try { remote[d.id] = JSON.parse(v.json); remoteAt = Math.max(remoteAt, v.at || 0); } catch (e) {} }
+      if (remoteAt > (S.meta.at || 0) && Object.keys(remote).length) {
+        const merged = blank(); for (const k of KEYS) if (k in remote) merged[k] = remote[k]; else merged[k] = S[k];
+        merged.meta = { at: remoteAt }; S = normalize(merged); lsSet(LS, JSON.stringify(S)); this.dirty.clear(); render(); toast("Loaded your saved data");
+      }
+      this.state = "on"; renderRail(); if (this.dirty.size && S.meta.at) this.flush();
+    } catch (e) { this.state = "local"; this.db = null; renderRail(); }
+  },
+  mark(keys) { (keys || KEYS).forEach(k => this.dirty.add(k)); if (!this.db) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.flush(), 1500); },
+  async flush() {
+    if (!this.db) return; const keys = [...this.dirty]; this.dirty.clear();
+    try {
+      for (const k of keys) await this.db.doc("data/users/" + this.uid + "/" + k).set({ json: JSON.stringify(S[k]), at: S.meta.at });
+      if (this.state !== "on") { this.state = "on"; renderRail(); }
+    } catch (e) { keys.forEach(k => this.dirty.add(k)); this.state = "error"; renderRail(); }
+  }
+};
+function save(keys) { S.meta.at = Date.now(); lsSet(LS, JSON.stringify(S)); Cloud.mark(keys); }
+
+/* ============ AI engine: Claude (in claude.ai) → Gemini key → copy/paste ============ */
+const RULES_FOR_AI = "Rules: write in casual US English for TikTok. No false or unprovable claims, no health/medical/weight-loss claims, no before/after claims, no 'best seller' or '#1', no mention of other websites, links, QR codes or marketplaces, no 'dupe'. Never invent customer testimonials.";
+const AI = {
+  sample: null,
+  async init() { if (window.claude && window.claude.use) { try { this.sample = await claude.use("sample"); } catch (e) { this.sample = null; } renderRail(); } },
+  key() { return lsGet(LS_KEY) || ""; },
+  mode() {
+    const m = S.settings.aiMode;
+    if (m === "claude") return this.sample ? "claude" : "manual";
+    if (m === "gemini") return this.key() ? "gemini" : "manual";
+    if (m === "manual") return "manual";
+    return this.sample ? "claude" : this.key() ? "gemini" : "manual";
+  },
+  label() { return { claude: "Claude (built in)", gemini: "Gemini (your free key)", manual: "Copy & paste" }[this.mode()]; },
+  async run(prompt, title) {
+    const mode = this.mode();
+    if (mode === "claude") {
+      const done = busy(title);
+      try { const r = await this.sample(prompt, { onText: ({ text }) => done.stream(text) }); done.close(); return r.text; }
+      catch (e) { done.close(); if (e && e.code === "cancelled") throw e; toast(e && e.code === "not_granted" ? "Claude not allowed here; switching to copy & paste" : "Claude couldn't answer; use copy & paste"); return manual(prompt, title); }
+    }
+    if (mode === "gemini") {
+      const done = busy(title);
+      try {
+        const model = (S.settings.geminiModel || "gemini-2.5-flash").trim();
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+          method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": this.key() },
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }) });
+        const j = await res.json();
+        if (!res.ok) throw new Error((j.error && j.error.message) || res.statusText);
+        const text = (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text || "").join("") || "";
+        done.close(); if (!text) throw new Error("Empty answer"); return text;
+      } catch (e) { done.close(); toast("Gemini failed: " + String(e.message || e).slice(0, 80)); return manual(prompt, title); }
+    }
+    return manual(prompt, title);
+  }
+};
+let busyCtl = null;
+function busy(title) {
+  const dlg = $("#dlg"), body = $("#dlgBody");
+  body.innerHTML = `<h2>${esc(title)}</h2><p class="muted small">Writing… this can take up to a minute.</p><div class="out" id="busyOut">Thinking…</div><div class="row"><button class="btn" id="busyHide">Hide</button></div>`;
+  $("#busyHide").onclick = () => dlg.close();
+  if (!dlg.open) dlg.showModal();
+  return { stream(t) { const o = $("#busyOut"); if (o) o.textContent = t; }, close() { if (dlg.open && $("#busyOut")) dlg.close(); } };
+}
+function manual(prompt, title) {
+  return new Promise((resolve, reject) => {
+    const dlg = $("#dlg"), body = $("#dlgBody");
+    body.innerHTML = `<h2>${esc(title)}</h2>
+      <p class="small muted">1. Copy this prompt. 2. Paste it into any free chatbot. 3. Paste the answer back here.</p>
+      <textarea id="mPrompt" readonly style="min-height:150px">${esc(prompt)}</textarea>
+      <div class="row"><button class="btn primary" id="mCopy">Copy prompt</button>
+        <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+        <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a>
+        <a class="btn" href="https://gemini.google.com/app" target="_blank" rel="noopener">Open Gemini</a></div>
+      <label class="f">Paste the chatbot's answer<textarea id="mAnswer" style="min-height:150px" placeholder="Paste here…"></textarea></label>
+      <div class="row"><button class="btn primary" id="mUse">Use this answer</button><button class="btn ghost" id="mCancel">Cancel</button></div>`;
+    $("#mCopy").onclick = () => copy(prompt);
+    $("#mUse").onclick = () => { const v = $("#mAnswer").value.trim(); if (!v) { toast("Paste the answer first"); return; } dlg.close(); resolve(v); };
+    $("#mCancel").onclick = () => { dlg.close(); reject({ code: "cancelled" }); };
+    if (!dlg.open) dlg.showModal();
+  });
+}
+async function ai(prompt, title, then) {
+  try { const text = await AI.run(prompt, title); await then(text); save(); render(); }
+  catch (e) { if (!e || e.code !== "cancelled") toast("Something went wrong: " + (e && (e.message || e.code) || e)); }
+}
+/* parsing helpers for AI answers */
+const cleanLine = l => l.replace(/^\s*(?:[-*•]|\d+[.)]|#+)\s*/, "").replace(/^\*\*(.*)\*\*$/, "$1").replace(/^["“](.*)["”]$/, "$1").trim();
+function parseList(text) {
+  let style = ""; const out = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const l = raw.trim(); if (!l) continue;
+    if (!/^\s*(?:[-*•]\s|\d+[.)]\s?)/.test(raw)) {
+      if (l.length < 60) { if (/problem/i.test(l)) style = "problem"; else if (/curio/i.test(l)) style = "curiosity"; else if (/tried/i.test(l)) style = "tried"; }
+      continue;
+    }
+    const t = cleanLine(l); if (t.length > 2) out.push({ text: t, style });
+  }
+  return out;
+}
+function splitBlocks(text, marker) {
+  const parts = text.split(new RegExp("^\\s*(?:#+\\s*)?\\**\\s*" + marker + "\\s*\\d+.*$", "gim")).map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) return parts;
+  return text.split(/^\s*-{3,}\s*$/m).map(s => s.trim()).filter(Boolean);
+}
+function field(text, name) {
+  const re = new RegExp("^\\s*[*_#\\s]*" + name + "[*_]*\\s*:[*_]*\\s*(.*?)[*_\\s]*$", "im"); const m = text.match(re); return m ? m[1].trim() : "";
+}
+
+/* ============ domain helpers ============ */
+const prod = id => S.products.find(p => p.id === id);
+const pname = id => (prod(id) || {}).name || "No product";
+function productCtx(p) {
+  if (!p) return "Product: (not specified)";
+  return `Product: ${p.name}\nPrice: $${num(p.price).toFixed(2)}\nWho buys it: ${p.buyer || "(not given)"}\nTheir problem: ${p.problem || "(not given)"}\nSpecs: ${p.specs || "(not given)"}` +
+    (S.settings.brand ? `\nBrand: ${S.settings.brand}` : "") + (p.research && p.research.insights ? `\nWhat buyers say (research notes):\n${p.research.insights.slice(0, 1500)}` : "");
+}
+function econ(p, refPct = S.settings.referralPct, comPct = S.settings.commissionPct) {
+  const price = num(p.price), landed = num(p.landed), ship = num(p.shipping);
+  const ref = price * num(refPct) / 100, com = price * num(comPct) / 100;
+  const organic = price - landed - ship - ref, affiliate = organic - com;
+  return { price, landed, ship, ref, com, organic, affiliate, margin: price ? organic / price * 100 : 0,
+    landedPct: price ? landed / price * 100 : 0, maxCom: price ? Math.max(0, organic / price * 100) : 0 };
+}
+function productScore(p) {
+  const e = econ(p); const c = Object.assign({}, p.checks || {});
+  if (e.price) c.price = e.price >= 15 && e.price <= 50;
+  if (e.price && e.landed) c.landed = e.landedPct < 30;
+  return { checks: c, score: PRODUCT_CHECKS.filter(([k]) => c[k]).length };
+}
+const posted = () => S.videos.filter(v => v.status === "posted");
+function videoStats() {
+  const ps = posted().filter(v => num(v.views) > 0);
+  const avgViews = ps.length ? ps.reduce((a, v) => a + num(v.views), 0) / ps.length : 0;
+  const holds = ps.filter(v => num(v.hold3) > 0); const avgHold = holds.length ? holds.reduce((a, v) => a + num(v.hold3), 0) / holds.length : 0;
+  const winners = ps.filter(v => ps.length >= 3 && num(v.views) >= 3 * avgViews && !v.repurposed);
+  const byFormat = FORMATS.map(([k, name]) => { const vs = holds.filter(v => v.format === k); const h = vs.length ? vs.reduce((a, v) => a + num(v.hold3), 0) / vs.length : null; return { k, name, n: vs.length, hold: h, views: vs.reduce((a, v) => a + num(v.views), 0), orders: vs.reduce((a, v) => a + num(v.orders), 0) }; });
+  return { ps, avgViews, avgHold, winners, byFormat };
+}
+function videoIssues(v) {
+  const out = [];
+  const f = v.flags || {};
+  if (!f.cart) out.push({ sev: "bad", msg: "Add the product link (orange cart). A video without it can't sell." });
+  if ((f.aiVoice || f.aiVisual) && !f.aiLabel) out.push({ sev: "bad", msg: "Uses AI voice, avatar or generated visuals: turn on the AI-generated content toggle." });
+  if (!f.commercial) out.push({ sev: "warn", msg: "Turn on the commercial content disclosure for promo posts." });
+  scanText([v.hook, v.script, v.caption].join("\n")).forEach(i => out.push(i));
+  return out;
+}
+function postedOn(day) { return S.videos.filter(v => v.status === "posted" && v.date === day).length; }
+
+/* ============ navigation ============ */
+const TABS = [
+  ["today", "Today", '<path d="M3 5h14v12H3zM3 8h14M7 3v3M13 3v3"/>'],
+  ["products", "Products", '<path d="M3 7l7-4 7 4v7l-7 4-7-4zM3 7l7 4 7-4M10 11v7"/>'],
+  ["content", "Videos", '<rect x="5" y="2" width="10" height="16" rx="2"/><path d="M9 8l3 2-3 2z"/>'],
+  ["listings", "Listing", '<path d="M5 2h7l3 3v13H5zM8 8h5M8 11h5M8 14h3"/>'],
+  ["creators", "Creators", '<circle cx="7" cy="7" r="3"/><circle cx="14" cy="8" r="2.4"/><path d="M2 17c0-3 2.5-5 5-5s5 2 5 5M12 13c2.5 0 5 1.5 5 4"/>'],
+  ["live", "LIVE", '<circle cx="10" cy="10" r="2.5"/><path d="M5.5 5.5a6.4 6.4 0 000 9M14.5 5.5a6.4 6.4 0 010 9M3 3a10 10 0 000 14M17 3a10 10 0 010 14"/>'],
+  ["metrics", "Numbers", '<path d="M3 17V9M8 17V4M13 17v-6M18 17V7"/>'],
+  ["check", "Rule check", '<path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5z"/><path d="M7 10l2 2 4-4"/>'],
+  ["settings", "Settings", '<circle cx="10" cy="10" r="3"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3M3.6 3.6l2.1 2.1M14.3 14.3l2.1 2.1M3.6 16.4l2.1-2.1M14.3 5.7l2.1-2.1"/>']
+];
+let TAB = (location.hash.slice(1) || lsGet(LS_TAB) || "today");
+if (!TABS.some(t => t[0] === TAB)) TAB = "today";
+const UI = { product: null, video: null, contentMode: "board", listing: null };
+function go(t) { TAB = t; lsSet(LS_TAB, t); render(); window.scrollTo(0, 0); }
+function renderRail() {
+  const counts = { content: S.videos.filter(v => v.status !== "posted").length || "", creators: S.creators.filter(c => !["passed", "selling"].includes(c.status)).length || "" };
+  const sync = Cloud.state === "on" ? "Saved to your Claude account" : Cloud.state === "syncing" ? "Syncing…" : Cloud.state === "error" ? "Sync paused; saved on this device" : "Saved on this device";
+  $("#rail").innerHTML = `<div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#ff5a1f"/><path d="M6 8h2l2 8h8l2-6H9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="19.5" r="1.4" fill="#fff"/><circle cx="17" cy="19.5" r="1.4" fill="#fff"/></svg>Orange Cart Studio</div>` +
+    TABS.map(([k, l, ic]) => `<button class="tab" data-go="${k}" aria-current="${TAB === k}"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</button>`).join("") +
+    `<div class="foot">AI: ${esc(AI.label())}<br>${esc(sync)}</div>`;
+}
+
+/* ============ views ============ */
+function render() {
+  const a = document.activeElement, aid = a && a.id, ss = a && typeof a.selectionStart === "number" ? a.selectionStart : null;
+  renderRail();
+  const v = $("#view");
+  const fn = { today: vToday, products: vProducts, content: vContent, listings: vListings, creators: vCreators, live: vLive, metrics: vMetrics, check: vCheck, settings: vSettings }[TAB];
+  v.innerHTML = fn();
+  afterRender();
+  if (aid && !$("#dlg").open) { const n = document.getElementById(aid); if (n) { try { n.focus({ preventScroll: true }); if (ss !== null) n.setSelectionRange(ss, ss); } catch (e) {} } }
+}
+function afterRender() { if (TAB === "listings") liveListing(); if (TAB === "check") liveCheck(); }
+const ex = o => o && o.example ? ' <span class="ex">Example</span>' : "";
+const issuesHTML = list => list.map(i => `<div class="alert ${i.sev}"><div class="grow">${esc(i.msg)}${i.hit ? ` <span class="muted small">(“${esc(i.hit)}”)</span>` : ""}</div></div>`).join("");
+const opt = (val, cur, label) => `<option value="${esc(val)}"${String(val) === String(cur) ? " selected" : ""}>${esc(label ?? val)}</option>`;
+const productSelect = (attrs, cur) => `<select ${attrs}>${opt("", cur, "— Pick a product —")}${S.products.map(p => opt(p.id, cur, p.name)).join("")}</select>`;
+
+/* ---- Today ---- */
+function vToday() {
+  const s = S.settings, day = s.startDate ? daysBetween(s.startDate, todayISO()) + 1 : 0;
+  const week = day ? Math.min(4, Math.max(1, Math.ceil(day / 7))) : 1;
+  const all = PLAN.flatMap(w => w.tasks), done = all.filter(t => S.plan[t[0]]).length;
+  const dow = new Date().getDay();
+  const vs = videoStats();
+  const target = week >= 2 ? 2 : 1, today = postedOn(todayISO());
+  const alerts = [];
+  const lastM = S.metrics[S.metrics.length - 1];
+  if (lastM && num(lastM.late) >= 10) alerts.push(["bad", `Late dispatch is ${num(lastM.late)}%. Over 10% triggers enforcement. Ship within 2 business days.`, "metrics"]);
+  const ahr = num(s.ahr);
+  if (ahr <= 150) alerts.push(["bad", `Account Health Rating is ${ahr}. ${ahr <= 0 ? "0 can mean permanent deactivation." : ahr <= 50 ? "New listings and campaigns are blocked for 28 days." : ahr <= 100 ? "New listings and campaigns are blocked for 14 days." : "New listings and campaigns are blocked for 7 days."}`, "metrics"]);
+  vs.winners.forEach(w => alerts.push(["acc", `Winner: “${w.hook.slice(0, 60)}” has ${num(w.views).toLocaleString()} views, 3× your average. Make 5 more with new hooks.`, "content", `data-act="repurpose" data-id="${w.id}"`]));
+  const unready = S.videos.filter(v => ["edited", "scheduled"].includes(v.status) && videoIssues(v).some(i => i.sev === "bad"));
+  if (unready.length) alerts.push(["warn", `${unready.length} video${unready.length > 1 ? "s are" : " is"} ready to post but missing the cart link, AI label or has a risky claim.`, "content"]);
+  const stale = S.creators.filter(c => c.status === "sample sent" && c.sentOn && daysBetween(c.sentOn, todayISO()) >= 7);
+  if (stale.length) alerts.push(["warn", `${stale.length} creator${stale.length > 1 ? "s" : ""} got a sample 7+ days ago and haven't posted. Send a friendly follow-up.`, "creators"]);
+  const lowFmt = vs.byFormat.filter(f => f.n >= 2 && f.hold !== null && f.hold < vs.avgHold - 5);
+  if (day >= 22 && lowFmt.length) alerts.push(["warn", `Cut or fix: ${lowFmt.map(f => f.name).join(", ")} hold viewers below your average.`, "content"]);
+  const routine = [];
+  if (dow === 1) routine.push(["30 min", "Plan the week: turn last week's comments and stats into 20 hooks and 7 scripts", "weekplan"], ["1 hr", "Film all the footage in one session: phone, natural light, vertical. Shoot each action 3 ways: close-up, hands-in-frame, wide.", null]);
+  if (dow === 2) routine.push(["1 hr", "Edit in CapCut. Reuse the same middle footage with different hooks to get 2 videos per script. Add auto-captions.", null], ["15 min", "Write captions with 3–5 hashtags and schedule everything in TikTok Studio", "captions"]);
+  routine.push(["15 min", "Reply to comments and turn the best questions into reply videos", "reply"]);
+  if (s.tier) routine.push(["", `Shop tier: ${s.tier}. Daily order cap: ${TIERS[s.tier] === Infinity ? "none" : TIERS[s.tier]}. Ship every order within 2 business days.`, null]);
+  const pipeline = VIDEO_STAGES.map(st => [st, S.videos.filter(v => v.status === st).length]);
+  const hasEx = [...S.products, ...S.videos, ...S.hooks, ...S.creators].some(x => x.example);
+  return `<div class="head"><div class="stack"><h1>${day > 0 && day <= 30 ? `Day ${day} of 30` : day > 30 ? `Day ${day}: past the 30-day plan` : "Your 30-day launch"}</h1>
+      <p>${day ? `Week ${week}: ${esc(PLAN[week - 1].name)}.` : "Set your start date to get a daily plan."} By day 30: one live product, 40+ posted videos, a few affiliate creators and data showing which hooks sell.</p></div>
+      ${day ? "" : `<button class="btn primary" data-act="start">Start my 30 days today</button>`}</div>
+    ${hasEx ? `<div class="alert warn"><div class="grow">You're looking at <b>example data</b> so you can see how everything works. Clear it when you're ready to add your own product.</div><button class="btn sm" data-act="clearEx">Clear examples</button></div>` : ""}
+    <div class="kpis">
+      <div class="kpi"><div class="l">Plan done</div><div class="v">${done}/${all.length}</div><div class="bar"><i style="width:${done / all.length * 100}%"></i></div></div>
+      <div class="kpi"><div class="l">Posted today</div><div class="v">${today}/${target}</div><div class="small muted">Goal: 1–3 a day</div></div>
+      <div class="kpi"><div class="l">Videos posted</div><div class="v">${posted().length}/40</div><div class="bar"><i style="width:${Math.min(100, posted().length / 40 * 100)}%"></i></div></div>
+      <div class="kpi"><div class="l">Avg 3-sec hold</div><div class="v">${vs.avgHold ? pct(vs.avgHold) : "—"}</div><div class="small muted">Target over 50%</div></div>
+    </div>
+    ${alerts.length ? `<div class="stack">${alerts.map(a => `<div class="alert ${a[0]}"><div class="grow">${esc(a[1])}</div>${a[3] ? `<button class="btn sm primary ai" ${a[3]}>Make 5 more</button>` : `<button class="btn sm" data-go="${a[2]}">Open</button>`}</div>`).join("")}</div>` : `<div class="alert good"><div class="grow">Nothing urgent. Keep posting.</div></div>`}
+    <div class="grid two">
+      <section class="card"><h2>Today's routine</h2>
+        ${routine.map(r => `<div class="row between" style="align-items:flex-start;flex-wrap:nowrap"><div class="stack" style="gap:2px"><span>${esc(r[1])}</span>${r[0] ? `<span class="small muted">${esc(r[0])}</span>` : ""}</div>${r[2] ? `<button class="btn sm primary ai" data-act="${r[2]}">Do it</button>` : ""}</div>`).join("")}
+        <div class="steps">${pipeline.map(([k, n]) => `<div><b>${n}</b>${esc(k)}</div>`).join("")}</div>
+      </section>
+      <section class="card"><h2>Week ${week} checklist</h2>
+        ${PLAN[week - 1].tasks.map(t => checkTask(t, "pl")).join("")}
+        <details><summary>All 4 weeks</summary><div class="stack" style="margin-top:8px">${PLAN.map(w => `<h3>Week ${w.week}: ${esc(w.name)}</h3>${w.tasks.map(t => checkTask(t, "pa")).join("")}`).join("")}</div></details>
+      </section>
+    </div>`;
+}
+function checkTask(t, pre) {
+  return `<div class="check${S.plan[t[0]] ? " done" : ""}"><input type="checkbox" id="${pre}-${t[0]}" data-plan="${t[0]}"${S.plan[t[0]] ? " checked" : ""}><span style="flex:1">${esc(t[1])}</span><button class="btn sm ghost" data-go="${t[2]}">Go</button></div>`;
+}
+
+/* ---- Products ---- */
+function vProducts() {
+  const sel = prod(UI.product) || S.products[0];
+  const ranked = [...S.products].map(p => ({ p, ...productScore(p), e: econ(p) })).sort((a, b) => b.score - a.score || b.e.organic - a.e.organic);
+  return `<div class="head"><div class="stack"><h1>Products</h1><p>Score every candidate before ordering a sample. Best first product: obvious benefit in 3 seconds, sells for $15–$50.</p></div>
+    <button class="btn primary" data-act="addProduct">Add product</button></div>
+    ${S.products.length ? `<section class="card"><div class="tbl"><table><thead><tr><th>Product</th><th>Score</th><th>Price</th><th>Profit/sale</th><th>w/ affiliate</th><th>Status</th><th></th></tr></thead><tbody>
+      ${ranked.map(({ p, score, e }) => `<tr><td>${esc(p.name)}${ex(p)}</td><td><span class="pill ${score >= 5 ? "good" : score >= 4 ? "warn" : "bad"}">${score}/6</span></td><td class="num">${money(e.price)}</td><td class="num">${money(e.organic)}</td><td class="num">${money(e.affiliate)}</td><td>${esc(p.status || "idea")}</td><td><button class="btn sm" data-act="pickProduct" data-id="${p.id}">${sel && sel.id === p.id ? "Open ✓" : "Open"}</button></td></tr>`).join("")}
+    </tbody></table></div><p class="small muted">Profit uses your ${num(S.settings.referralPct)}% referral fee and ${num(S.settings.commissionPct)}% affiliate commission from Settings. Check your settlement statement for your real rate.</p></section>` : `<div class="empty">No products yet. Add one you're considering and the studio scores it, works out your margin and writes your research prompts.</div>`}
+    ${sel ? productDetail(sel) : ""}`;
+}
+function productDetail(p) {
+  const { checks, score } = productScore(p), e = econ(p);
+  const b = (f, label, type = "text", extra = "") => `<label class="f">${label}<input type="${type}" ${type === "number" ? 'step="0.01" inputmode="decimal"' : ""} id="p-${f}-${p.id}" data-bind="products:${p.id}:${f}" value="${esc(p[f] ?? "")}" ${extra}></label>`;
+  const sups = p.suppliers || [];
+  const best = sups.length ? [...sups].sort((a, b) => num(a.p50) - num(b.p50) || num(a.lead) - num(b.lead))[0] : null;
+  return `<section class="card"><div class="row between"><h2>${esc(p.name)}${ex(p)}</h2>
+      <div class="row"><select data-bind="products:${p.id}:status" id="p-status-${p.id}">${["idea", "researching", "sample ordered", "testing", "winner", "dropped"].map(s => opt(s, p.status || "idea")).join("")}</select><button class="btn sm ghost" data-act="delProduct" data-id="${p.id}">Delete</button></div></div>
+    <div class="fields">${b("name", "Name")}${b("price", "Sale price $", "number")}${b("landed", "Landed cost $ (product + shipping to you)", "number")}${b("shipping", "Shipping to buyer $", "number")}</div>
+    <div class="fields" style="grid-template-columns:1fr 1fr">${b("buyer", "Who buys it")}${b("problem", "The problem it solves")}</div>
+    <label class="f">Specs and details<textarea data-bind="products:${p.id}:specs" id="p-specs-${p.id}" style="min-height:60px">${esc(p.specs || "")}</textarea></label>
+  </section>
+  <div class="grid two">
+    <section class="card"><div class="row between"><h2>Checklist</h2><span class="score">${score}/6</span></div>
+      ${PRODUCT_CHECKS.map(([k, label, hint]) => { const auto = (k === "price" && e.price) || (k === "landed" && e.price && e.landed);
+        return `<label class="check"><input type="checkbox" id="pc-${k}-${p.id}" data-check="${p.id}:${k}"${checks[k] ? " checked" : ""}${auto ? " disabled" : ""}><span><b>${label}</b>${auto ? ' <span class="pill">auto</span>' : ""}<br><span class="small muted">${hint}</span></span></label>`; }).join("")}
+    </section>
+    <section class="card" id="econ"><h2>Margin check</h2>${econHTML(p)}</section>
+  </div>
+  <section class="card"><h2>Let AI do the research</h2>
+    <p class="small muted">Find the material for free in TikTok's Shop tab and Creative Center, Kalodata/FastMoss free tiers, Google Trends, and Amazon or AliExpress reviews. Paste it here.</p>
+    <div class="row">
+      <a class="btn sm" href="https://ads.tiktok.com/business/creativecenter/" target="_blank" rel="noopener">Creative Center</a>
+      <a class="btn sm" href="https://trends.google.com/trends/explore?geo=US&q=${encodeURIComponent(p.name.replace(/^Example:\s*/, ""))}" target="_blank" rel="noopener">Google Trends</a>
+      <a class="btn sm" href="https://www.tiktok.com/search?q=${encodeURIComponent(p.name.replace(/^Example:\s*/, ""))}" target="_blank" rel="noopener">Search TikTok</a></div>
+    <div class="grid two">
+      <label class="f">50–100 comments from top videos<textarea id="rc-${p.id}" data-bind="products:${p.id}:research.comments" placeholder="Paste comments here">${esc(p.research?.comments || "")}</textarea></label>
+      <label class="f">1–3 star reviews of competing products<textarea id="rr-${p.id}" data-bind="products:${p.id}:research.reviews" placeholder="Paste reviews here">${esc(p.research?.reviews || "")}</textarea></label>
+    </div>
+    <div class="row"><button class="btn primary ai" data-act="mineComments" data-id="${p.id}">Mine comments</button><button class="btn ai" data-act="mineReviews" data-id="${p.id}">Mine reviews</button><button class="btn ai" data-act="angles" data-id="${p.id}">10 buyer angles</button></div>
+    ${p.research?.insights ? `<h3>What buyers say</h3><div class="out">${esc(p.research.insights)}</div>` : ""}
+    ${p.angles ? `<h3>Buyer angles (each one is a video series)</h3><div class="out">${esc(p.angles)}</div>` : ""}
+  </section>
+  <section class="card"><div class="row between"><h2>Suppliers</h2><div class="row"><button class="btn sm ai" data-act="supplierMsg" data-id="${p.id}">Write supplier message</button><button class="btn sm" data-act="addSupplier" data-id="${p.id}">Add supplier</button></div></div>
+    <p class="small muted">Shortlist 3. Ask each for unit price at 50 and 500 units, sample cost and lead time. Hold 30–100 units of US stock so you can ship within 2 business days.</p>
+    ${sups.length ? `<div class="tbl"><table><thead><tr><th>Supplier</th><th>$ at 50</th><th>$ at 500</th><th>Sample $</th><th>Lead days</th><th>50 units + sample</th><th></th></tr></thead><tbody>
+      ${sups.map(s => `<tr><td><input type="text" id="s-n-${s.id}" data-sup="${p.id}:${s.id}:name" value="${esc(s.name)}"></td>${["p50", "p500", "sample", "lead"].map(f => `<td><input type="number" step="0.01" id="s-${f}-${s.id}" data-sup="${p.id}:${s.id}:${f}" value="${esc(s[f] ?? "")}"></td>`).join("")}
+        <td class="num">${money(num(s.p50) * 50 + num(s.sample))}${best && best.id === s.id ? ' <span class="pill good">best</span>' : ""}</td><td><button class="btn sm ghost" data-act="delSupplier" data-id="${p.id}:${s.id}">✕</button></td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+    ${p.supplierMsg ? `<div class="row between"><h3>Message to send</h3><button class="btn sm" data-copy="${esc(p.supplierMsg)}">Copy</button></div><div class="out">${esc(p.supplierMsg)}</div>` : ""}
+  </section>`;
+}
+function econHTML(p) {
+  const e = econ(p);
+  const r = (l, v, cls = "") => `<div class="row between"><span>${l}</span><span class="num ${cls}">${v}</span></div>`;
+  return `${r("Sale price", money(e.price))}${r("Landed cost", "−" + money(e.landed).replace("-", ""))}${r("Shipping to buyer", "−" + money(e.ship))}${r(`Referral fee (${num(S.settings.referralPct)}%)`, "−" + money(e.ref))}
+    <hr style="border:0;border-top:1px solid var(--line);width:100%">
+    ${r("<b>Profit per organic sale</b>", money(e.organic), e.organic > 0 ? "" : "bad")}
+    ${r(`Profit per affiliate sale (${num(S.settings.commissionPct)}% commission)`, money(e.affiliate))}
+    ${r("Margin", pct(e.margin))}
+    ${r("Break-even ad cost per sale", money(Math.max(0, e.organic)))}
+    ${r("Highest commission you can afford", pct(e.maxCom))}
+    <div class="row">${e.price ? `<span class="pill ${e.price >= 15 && e.price <= 50 ? "good" : "bad"}">Price ${e.price >= 15 && e.price <= 50 ? "in" : "outside"} $15–$50</span>` : ""}
+    ${e.landed ? `<span class="pill ${e.landedPct < 30 ? "good" : "bad"}">Landed ${pct(e.landedPct)} of price</span>` : ""}
+    ${e.affiliate <= 0 && e.price ? `<span class="pill bad">Loses money on affiliate sales</span>` : ""}</div>`;
+}
+
+/* ---- Content ---- */
+function vContent() {
+  const m = UI.contentMode, vs = videoStats();
+  const segs = [["board", "Video board"], ["hooks", `Hook bank (${S.hooks.filter(h => !h.used).length})`], ["perf", "What's working"]];
+  return `<div class="head"><div class="stack"><h1>Videos</h1><p>Post 1–3 short videos a day for 30 days, each showing the real product solving one problem in the first 3 seconds. Volume and testing hooks matter more than polish.</p></div>
+    <div class="row"><button class="btn primary ai" data-act="weekplan">Plan this week</button><button class="btn ai" data-act="newScript">Write a script</button></div></div>
+    <div class="segs" role="group">${segs.map(([k, l]) => `<button data-mode="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}</div>
+    ${m === "board" ? contentBoard() : m === "hooks" ? contentHooks() : contentPerf(vs)}`;
+}
+function contentBoard() {
+  const sel = S.videos.find(v => v.id === UI.video);
+  const order = [...S.videos].sort((a, b) => VIDEO_STAGES.indexOf(a.status) - VIDEO_STAGES.indexOf(b.status) || String(b.date || "").localeCompare(String(a.date || "")));
+  return `${sel ? videoDetail(sel) : ""}
+  <section class="card"><div class="row between"><h2>All videos</h2><button class="btn sm" data-act="addVideo">Add video</button></div>
+    ${order.length ? `<div class="tbl"><table><thead><tr><th>Hook</th><th>Format</th><th>Stage</th><th>Views</th><th>Hold</th><th>Orders</th><th>Ready</th><th></th></tr></thead><tbody>
+    ${order.map(v => { const iss = videoIssues(v), bad = iss.filter(i => i.sev === "bad").length;
+      return `<tr><td style="min-width:200px">${esc((v.hook || "(no hook yet)").slice(0, 90))}${ex(v)}</td><td class="small">${esc((FORMATS.find(f => f[0] === v.format) || [, "—"])[1])}</td>
+      <td><select id="vs-${v.id}" data-bind="videos:${v.id}:status">${VIDEO_STAGES.map(s => opt(s, v.status)).join("")}</select></td>
+      <td class="num">${v.views ? num(v.views).toLocaleString() : "—"}</td><td class="num">${v.hold3 ? pct(num(v.hold3)) : "—"}</td><td class="num">${v.orders || "—"}</td>
+      <td>${bad ? `<span class="pill bad">${bad} fix</span>` : iss.length ? `<span class="pill warn">check</span>` : `<span class="pill good">ok</span>`}</td>
+      <td><button class="btn sm" data-act="pickVideo" data-id="${v.id}">Open</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="empty">No videos yet. Click “Plan this week” and the studio writes 20 hooks and 7 scripts.</div>`}
+  </section>
+  <section class="card"><h2>Five formats that sell</h2><div class="tbl"><table><tbody>${FORMATS.map(f => `<tr><td><b>${f[1]}</b></td><td>${f[2]}</td><td class="num">${f[3]}</td></tr>`).join("")}</tbody></table></div></section>`;
+}
+function videoDetail(v) {
+  const iss = videoIssues(v), f = v.flags || {};
+  const fl = (k, l) => `<label class="f inline"><input type="checkbox" id="vf-${k}-${v.id}" data-flag="${v.id}:${k}"${f[k] ? " checked" : ""}>${l}</label>`;
+  return `<section class="card" style="border-color:var(--accent)"><div class="row between"><h2>Video${ex(v)}</h2><div class="row"><button class="btn sm ghost" data-act="delVideo" data-id="${v.id}">Delete</button><button class="btn sm" data-act="closeVideo">Close</button></div></div>
+    <div class="fields">
+      <label class="f">Product${productSelect(`id="v-p-${v.id}" data-bind="videos:${v.id}:productId"`, v.productId)}</label>
+      <label class="f">Format<select id="v-f-${v.id}" data-bind="videos:${v.id}:format">${opt("", v.format, "—")}${FORMATS.map(x => opt(x[0], v.format, x[1])).join("")}</select></label>
+      <label class="f">Stage<select id="v-s-${v.id}" data-bind="videos:${v.id}:status">${VIDEO_STAGES.map(s => opt(s, v.status)).join("")}</select></label>
+      <label class="f">Post date<input type="date" id="v-d-${v.id}" data-bind="videos:${v.id}:date" value="${esc(v.date || "")}"></label></div>
+    <label class="f">Hook (first 2 seconds)<input type="text" id="v-h-${v.id}" data-bind="videos:${v.id}:hook" value="${esc(v.hook || "")}"></label>
+    <label class="f">Script and shot directions<textarea id="v-sc-${v.id}" data-bind="videos:${v.id}:script" style="min-height:140px">${esc(v.script || "")}</textarea></label>
+    <div class="row"><button class="btn sm ai" data-act="scriptFor" data-id="${v.id}">${v.script ? "Rewrite script" : "Write script"}</button><button class="btn sm ai" data-act="caption" data-id="${v.id}">Write caption</button>${v.script ? `<button class="btn sm" data-copy="${esc(v.script)}">Copy script</button>` : ""}</div>
+    <label class="f">Caption with 3–5 hashtags<textarea id="v-c-${v.id}" data-bind="videos:${v.id}:caption" style="min-height:60px">${esc(v.caption || "")}</textarea></label>
+    ${v.caption ? `<div class="row"><button class="btn sm" data-copy="${esc(v.caption)}">Copy caption</button></div>` : ""}
+    <h3>Before you post</h3>
+    <div class="row" style="gap:14px">${fl("cart", "Product link (orange cart) added")}${fl("commercial", "Commercial content disclosure on")}${fl("aiVoice", "Uses AI voice or avatar")}${fl("aiVisual", "Uses AI-generated visuals")}${fl("aiLabel", "AI-generated content toggle on")}</div>
+    <p class="small muted">AI-written scripts and captions on real footage don't need the AI label. AI voices, avatars and generated visuals do.</p>
+    <div id="vIssues">${iss.length ? issuesHTML(iss) : `<div class="alert good"><div class="grow">Ready to post.</div></div>`}</div>
+    <h3>Results (from TikTok Studio)</h3>
+    <div class="fields">${[["views", "Views"], ["hold3", "3-sec hold %"], ["ctr", "Link click-through %"], ["orders", "Orders"]].map(([k, l]) => `<label class="f">${l}<input type="number" step="0.1" id="v-${k}-${v.id}" data-bind="videos:${v.id}:${k}" value="${esc(v[k] ?? "")}"></label>`).join("")}</div>
+    ${v.status === "posted" ? `<div class="row"><button class="btn sm ai" data-act="repurpose" data-id="${v.id}">Make 5 variations with new hooks</button></div>` : ""}
+  </section>`;
+}
+function contentHooks() {
+  const hooks = [...S.hooks].sort((a, b) => (a.used - b.used));
+  return `<div class="grid two"><section class="card"><h2>Generate 30 hooks</h2>
+      <p class="small muted">10 problem-first, 10 curiosity, 10 “I tried…” style. All under 10 words.</p>
+      <label class="f">Product${productSelect('id="hookProd"', UI.product || (S.products[0] || {}).id)}</label>
+      <button class="btn primary ai" data-act="hooks30">Write 30 hooks</button></section>
+    <section class="card"><h2>Hook formulas</h2>${HOOK_FORMULAS.map(h => `<div class="hook"><span class="t">${esc(h)}</span><button class="btn sm ghost" data-act="addHookText" data-text="${esc(h)}">Add</button></div>`).join("")}
+      <p class="small muted">Judge a hook by the share of viewers who watch past 3 seconds, not by likes.</p></section></div>
+    <section class="card"><div class="row between"><h2>Hook bank</h2><button class="btn sm" data-act="addHook">Add your own</button></div>
+      ${hooks.length ? hooks.map(h => `<div class="hook"><input type="checkbox" id="hk-${h.id}" data-hookused="${h.id}"${h.used ? " checked" : ""} title="Used"><span class="t"${h.used ? ' style="color:var(--muted);text-decoration:line-through"' : ""}>${esc(h.text)}${ex(h)} ${h.style ? `<span class="pill">${esc(h.style)}</span>` : ""}</span>
+        <button class="btn sm" data-act="hookToVideo" data-id="${h.id}">Make video</button><button class="btn sm ghost" data-act="delHook" data-id="${h.id}">✕</button></div>`).join("") : `<div class="empty">No hooks yet.</div>`}
+    </section>`;
+}
+function contentPerf(vs) {
+  if (!vs.ps.length) return `<div class="empty">Add views and 3-second hold to posted videos and this page shows which formats and hooks are working.</div>`;
+  const top = [...vs.ps].sort((a, b) => num(b.views) - num(a.views)).slice(0, 5);
+  return `<div class="kpis"><div class="kpi"><div class="l">Posted with stats</div><div class="v">${vs.ps.length}</div></div><div class="kpi"><div class="l">Average views</div><div class="v">${Math.round(vs.avgViews).toLocaleString()}</div></div>
+    <div class="kpi"><div class="l">Average hold</div><div class="v">${pct(vs.avgHold)}</div></div><div class="kpi"><div class="l">Winner line (3×)</div><div class="v">${Math.round(vs.avgViews * 3).toLocaleString()}</div></div></div>
+    <section class="card"><h2>Formats by 3-second hold</h2><div class="tbl"><table><thead><tr><th>Format</th><th>Videos</th><th>Avg hold</th><th>Views</th><th>Orders</th><th>Verdict</th></tr></thead><tbody>
+    ${vs.byFormat.map(f => `<tr><td>${f.name}</td><td class="num">${f.n}</td><td class="num">${f.hold === null ? "—" : pct(f.hold)}</td><td class="num">${f.views.toLocaleString()}</td><td class="num">${f.orders}</td>
+      <td>${f.hold === null ? '<span class="pill">no data</span>' : f.hold >= vs.avgHold ? '<span class="pill good">keep</span>' : f.hold < vs.avgHold - 5 ? '<span class="pill bad">cut or fix</span>' : '<span class="pill warn">watch</span>'}</td></tr>`).join("")}</tbody></table></div></section>
+    <section class="card"><h2>Top videos</h2>${top.map(v => `<div class="hook"><span class="t">${esc(v.hook)}${ex(v)}<br><span class="small muted num">${num(v.views).toLocaleString()} views · ${pct(num(v.hold3))} hold · ${num(v.orders)} orders</span></span>
+      ${num(v.views) >= 3 * vs.avgViews ? '<span class="pill acc">3× winner</span>' : ""}<button class="btn sm ai" data-act="repurpose" data-id="${v.id}">5 more</button></div>`).join("")}
+      <p class="small muted">When a video beats your average by 3×, make 5 more using the same structure and a new hook.</p></section>`;
+}
+
+/* ---- Listing ---- */
+function vListings() {
+  let L = S.listings.find(l => l.id === UI.listing) || S.listings[0];
+  return `<div class="head"><div class="stack"><h1>Listing builder</h1><p>A clean listing gets approved. AI writes the copy; the checker flags anything that gets listings rejected.</p></div>
+    <button class="btn primary" data-act="addListing">New listing</button></div>
+    ${S.listings.length > 1 ? `<div class="segs">${S.listings.map(l => `<button data-act="pickListing" data-id="${l.id}" aria-pressed="${L && L.id === l.id}">${esc(pname(l.productId))}</button>`).join("")}</div>` : ""}
+    ${L ? `<div class="grid two"><section class="card"><div class="row between"><h2>Copy</h2><button class="btn sm ghost" data-act="delListing" data-id="${L.id}">Delete</button></div>
+      <label class="f">Product${productSelect(`id="l-p-${L.id}" data-bind="listings:${L.id}:productId"`, L.productId)}</label>
+      <button class="btn primary ai" data-act="writeListing" data-id="${L.id}">Write title and description</button>
+      <label class="f">Title (25–200 characters)<textarea id="l-t-${L.id}" data-bind="listings:${L.id}:title" data-live="listing" style="min-height:60px">${esc(L.title || "")}</textarea></label>
+      <label class="f">Description bullets (one per line, 3–5)<textarea id="l-b-${L.id}" data-bind="listings:${L.id}:bullets" data-live="listing" style="min-height:160px">${esc(L.bullets || "")}</textarea></label>
+      <div class="row"><button class="btn sm" data-copy-field="l-t-${L.id}">Copy title</button><button class="btn sm" data-copy-field="l-b-${L.id}">Copy description</button></div>
+      <h3>Photos and video</h3>
+      <p class="small muted">5–9 square images, at least 600 × 600 px, main image on white with no text, logos or watermarks. Pick your photos to check them; they stay on your device.</p>
+      <button class="btn" data-act="checkImages">Check my photos</button><div id="imgResults" class="stack">${L.imgReport || ""}</div>
+      <label class="f inline"><input type="checkbox" id="l-v-${L.id}" data-bind="listings:${L.id}:hasVideo" ${L.hasVideo ? "checked" : ""}>One short product video (up to 5 MB) added</label>
+      <label class="f inline"><input type="checkbox" id="l-var-${L.id}" data-bind="listings:${L.id}:variations" ${L.variations ? "checked" : ""}>Sizes and colors are variations of one listing (no duplicates)</label>
+    </section>
+    <section class="card"><h2>Listing checklist</h2><div id="listingChecks" class="stack"></div></section></div>` : `<div class="empty">No listing yet. Click “New listing” and pick your product.</div>`}`;
+}
+function listingChecks(L) {
+  const t = String(L.title || ""), bl = String(L.bullets || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean), all = t + "\n" + bl.join("\n");
+  const c = [];
+  c.push([t.length >= 25 && t.length <= 200, `Title length ${t.length} (needs 25–200)`]);
+  c.push([!(t.length > 8 && t === t.toUpperCase() && /[A-Z]/.test(t)) && (t.match(/\b[A-Z]{4,}\b/g) || []).length < 2, "Title isn't in all caps"]);
+  c.push([!/best[- ]?sell|#1|top[- ]rated/i.test(t), "No “Best Seller”, #1 or top-rated in the title"]);
+  c.push([!/https?:|www\.|\.com\b/i.test(all), "No URLs or off-platform links"]);
+  c.push([words(bl.join(" ")) >= 30, `Description is ${words(bl.join(" "))} words (needs 30+)`]);
+  c.push([bl.length >= 3 && bl.length <= 5, `${bl.length} bullets (needs 3–5)`]);
+  const imgs = L.imgCount || 0;
+  c.push([imgs >= 5 && imgs <= 9 && L.imgOk, imgs ? `${imgs} photos checked${L.imgOk ? ", all pass" : ", some need fixes"}` : "5–9 square photos checked"]);
+  c.push([!!L.hasVideo, "Short product video added"]);
+  c.push([!!L.variations, "One listing per product, variations for sizes/colors"]);
+  if (S.settings.brand && t) c.push([t.toLowerCase().includes(S.settings.brand.toLowerCase()), "Title starts with your brand + product type + key details"]);
+  const sc = scanText(all).filter(i => i.sev === "bad");
+  return `<div class="row between"><span class="score">${c.filter(x => x[0]).length}/${c.length}</span><span class="pill ${c.every(x => x[0]) && !sc.length ? "good" : "warn"}">${c.every(x => x[0]) && !sc.length ? "Ready to submit" : "Not ready yet"}</span></div>` +
+    c.map(([ok, l]) => `<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="pill ${ok ? "good" : "bad"}">${ok ? "✓" : "✕"}</span><span>${esc(l)}</span></div>`).join("") + issuesHTML(scanText(all));
+}
+function liveListing() { const L = S.listings.find(l => l.id === UI.listing) || S.listings[0]; const box = $("#listingChecks"); if (L && box) box.innerHTML = listingChecks(L); }
+async function checkImageFiles(files) {
+  const L = S.listings.find(l => l.id === UI.listing) || S.listings[0]; if (!L) return;
+  const rows = []; let ok = true; let i = 0;
+  for (const f of files) {
+    i++;
+    const r = await new Promise(res => { const url = URL.createObjectURL(f); const im = new Image(); im.onload = () => { const c = document.createElement("canvas"); const w = im.naturalWidth, h = im.naturalHeight; c.width = 60; c.height = 60; const x = c.getContext("2d"); x.drawImage(im, 0, 0, 60, 60); const d = x.getImageData(0, 0, 60, 60).data; let white = 0, n = 0;
+      for (let y = 0; y < 60; y++) for (let xx = 0; xx < 60; xx++) { if (y > 3 && y < 56 && xx > 3 && xx < 56) continue; const k = (y * 60 + xx) * 4; n++; if (d[k] > 235 && d[k + 1] > 235 && d[k + 2] > 235) white++; }
+      URL.revokeObjectURL(url); res({ w, h, white: white / n }); }; im.onerror = () => res(null); im.src = url; });
+    if (!r) { rows.push(`<div class="alert bad"><div class="grow">${esc(f.name)}: couldn't read this image.</div></div>`); ok = false; continue; }
+    const probs = []; if (r.w < 600 || r.h < 600) probs.push(`only ${r.w}×${r.h} px (needs 600+)`); if (Math.abs(r.w - r.h) > Math.max(r.w, r.h) * 0.02) probs.push(`not square (${r.w}×${r.h})`);
+    if (i === 1 && r.white < 0.85) probs.push("main image edges aren't white; use a background remover");
+    if (probs.length) ok = false;
+    rows.push(`<div class="alert ${probs.length ? "bad" : "good"}"><div class="grow"><b>${i === 1 ? "Main: " : ""}${esc(f.name)}</b> ${probs.length ? esc(probs.join("; ")) : `${r.w}×${r.h} ✓`}</div></div>`);
+  }
+  if (files.length < 5 || files.length > 9) { rows.unshift(`<div class="alert warn"><div class="grow">You picked ${files.length} photos. Use 5–9; the first one you pick is treated as the main image.</div></div>`); }
+  L.imgCount = files.length; L.imgOk = ok; L.imgReport = rows.join("") + `<p class="small muted">Free fixes: Adobe Express or CapCut background remover; resize to square. Also check by eye: no text, logos or watermarks on the main image.</p>`;
+  save(["listings"]); render();
+}
+
+/* ---- Creators ---- */
+function vCreators() {
+  const list = [...S.creators].sort((a, b) => num(b.gmv) - num(a.gmv) || CREATOR_STAGES.indexOf(b.status) - CREATOR_STAGES.indexOf(a.status));
+  const counts = CREATOR_STAGES.map(s => [s, S.creators.filter(c => c.status === s).length]);
+  return `<div class="head"><div class="stack"><h1>Affiliate creators</h1><p>Creators are the fastest way to get many videos without making them all yourself. Open plan at 15–20%; higher targeted plan for your best 10–20 fits.</p></div>
+    <button class="btn primary" data-act="addCreator">Add creator</button></div>
+    <div class="steps">${counts.map(([k, n]) => `<div><b>${n}</b>${esc(k)}</div>`).join("")}</div>
+    <section class="card"><h2>Pipeline</h2>
+    ${list.length ? `<div class="tbl"><table><thead><tr><th>Handle</th><th>Followers</th><th>Niche</th><th>Stage</th><th>Commission %</th><th>Sample sent</th><th>Videos</th><th>Sales $</th><th></th></tr></thead><tbody>
+      ${list.map(c => { const cb = (f, t = "text", w = "") => `<input type="${t}" id="c-${f}-${c.id}" data-bind="creators:${c.id}:${f}" value="${esc(c[f] ?? "")}" ${w}>`;
+        const days = c.status === "sample sent" && c.sentOn ? daysBetween(c.sentOn, todayISO()) : null;
+        return `<tr><td>${cb("handle")}${ex(c)}</td><td>${cb("followers", "number")}</td><td>${cb("niche")}</td><td><select id="c-s-${c.id}" data-bind="creators:${c.id}:status">${CREATOR_STAGES.map(s => opt(s, c.status)).join("")}</select></td>
+        <td>${cb("commission", "number")}</td><td>${cb("sentOn", "date")}${days !== null && days >= 7 ? `<br><span class="pill warn">${days} days, follow up</span>` : ""}</td><td>${cb("videos", "number")}</td><td>${cb("gmv", "number")}</td>
+        <td><div class="row" style="flex-wrap:nowrap"><button class="btn sm ai" data-act="invite" data-id="${c.id}">${days !== null && days >= 7 ? "Follow-up" : "Invite"}</button><button class="btn sm ghost" data-act="delCreator" data-id="${c.id}">✕</button></div></td></tr>
+        ${c.invite ? `<tr><td colspan="9"><div class="row between"><span class="small muted">Message for ${esc(c.handle)}</span><button class="btn sm" data-copy="${esc(c.invite)}">Copy</button></div><div class="out">${esc(c.invite)}</div></td></tr>` : ""}`; }).join("")}
+    </tbody></table></div>` : `<div class="empty">Add creators who already sell similar items in your niche. Search your niche on TikTok and check who has recent sales.</div>`}
+    </section>
+    ${topCreatorTips()}
+    <section class="card"><h2>Steps in Seller Center</h2><ol class="stack" style="margin:0;padding-left:20px">
+      <li>Open an <b>open plan</b> at 15–20% commission so any eligible creator can promote you.</li>
+      <li>Run a <b>targeted plan</b> at a higher rate for the 10–20 creators whose audience fits best.</li>
+      <li>Offer free samples to creators with recent sales in your category; the studio writes each invite.</li>
+      <li>Track whose videos sell; raise their commission and send them new products first.</li>
+      <li>Friends or local people with zero followers can post for you as Marketing Creators bound to your shop.</li></ol></section>`;
+}
+function topCreatorTips() {
+  const sellers = S.creators.filter(c => num(c.gmv) > 0).sort((a, b) => num(b.gmv) - num(a.gmv)).slice(0, 3);
+  if (!sellers.length) return "";
+  return `<div class="alert acc"><div class="grow">Your top sellers: ${sellers.map(c => `${esc(c.handle)} (${money(num(c.gmv))})`).join(", ")}. Raise their commission and send them new products first.</div></div>`;
+}
+
+/* ---- LIVE ---- */
+function vLive() {
+  const p = prod(UI.product) || S.products[0];
+  return `<div class="head"><div class="stack"><h1>LIVE planner</h1><p>LIVE generally needs 1,000 followers; check TikTok Studio. Go live 2–3 times a week for 30–60 minutes at a consistent time. Demo continuously, pin the product, answer comments by name, run a time-limited discount.</p></div></div>
+    <section class="card"><h2>Build a run-of-show</h2>
+      <div class="fields"><label class="f">Product${productSelect('id="liveProd"', p && p.id)}</label><label class="f">Length (minutes)<input type="number" id="liveLen" value="45"></label><label class="f">Discount offer<input type="text" id="liveOffer" placeholder="e.g. 15% off for the next 20 minutes"></label></div>
+      <button class="btn primary ai" data-act="liveplan">Write run-of-show</button>
+      <p class="small muted">You get 5 demo segments, 10 answers to common objections and a reason to buy now.</p></section>
+    ${S.lives.slice().reverse().map(l => `<section class="card"><div class="row between"><h2>${esc(pname(l.productId))} · ${esc(l.date)}</h2><div class="row"><button class="btn sm" data-copy="${esc(l.plan)}">Copy</button><button class="btn sm ghost" data-act="delLive" data-id="${l.id}">Delete</button></div></div><div class="out">${esc(l.plan)}</div></section>`).join("")}`;
+}
+
+/* ---- Numbers ---- */
+function vMetrics() {
+  const s = S.settings, ahr = num(s.ahr);
+  const last = S.metrics[S.metrics.length - 1];
+  let fix = null;
+  if (last) { if (!TARGETS[4].near(num(last.late))) fix = TARGETS[4]; else for (const t of [TARGETS[0], TARGETS[1], TARGETS[2], TARGETS[3]]) if (last[t.k] !== "" && last[t.k] != null && !t.ok(num(last[t.k]))) { fix = t; break; } }
+  const fixTips = { hold3: "Test new hooks: start mid-action and show the problem in the first frame.", ctr: "Show the product solving the problem sooner and say “tap the orange cart” at the end.", conv: "Improve the listing: clearer photos, answer top objections in the bullets, check the price.", profit: "Re-check fees and landed cost in Products, raise the price or lower commission.", late: "Ship every order within 2 business days before anything else." };
+  const band = ahr <= 0 ? ["bad", "0: permanent deactivation risk"] : ahr <= 50 ? ["bad", "Listings and campaigns blocked 28 days"] : ahr <= 100 ? ["bad", "Blocked 14 days"] : ahr <= 150 ? ["warn", "Blocked 7 days"] : ahr < 200 ? ["warn", "Below the starting score"] : ["good", "Healthy"];
+  return `<div class="head"><div class="stack"><h1>Weekly numbers</h1><p>Enter these once a week. Targets are rough benchmarks for a new shop; use them to spot which number to fix first.</p></div>
+    <button class="btn primary" data-act="addWeek">Add this week</button></div>
+    ${fix ? `<div class="alert ${fix.k === "late" ? "bad" : "acc"}"><div class="grow"><b>Fix first: ${esc(fix.label)}.</b> ${esc(fixTips[fix.k] || "")}</div></div>` : last ? `<div class="alert good"><div class="grow">Every number is on target this week.</div></div>` : ""}
+    <div class="grid two">
+      <section class="card"><h2>Account Health Rating</h2>
+        <div class="fields"><label class="f">Score (0–1,000)<input type="number" id="set-ahr" data-bind="settings::ahr" value="${esc(s.ahr)}"></label>
+        <label class="f">Shop tier<select id="set-tier" data-bind="settings::tier">${Object.keys(TIERS).map(t => opt(t, s.tier, `${t} (${TIERS[t] === Infinity ? "no cap" : TIERS[t] + "/day"})`)).join("")}</select></label></div>
+        <div class="alert ${band[0]}"><div class="grow">${esc(band[1])}</div></div>
+        <p class="small muted">Every shop starts at 200 over the last 180 days. Drops to 150, 100 or 50 block new listings and campaigns for 7, 14 or 28 days. Move up tiers by shipping on time, keeping listings accurate and answering customers.</p></section>
+      <section class="card"><h2>Targets</h2><div class="tbl"><table><tbody>${TARGETS.map(t => `<tr><td>${esc(t.label)}<br><span class="small muted">${esc(t.where)}</span></td><td class="small">${esc(t.target)}</td></tr>`).join("")}</tbody></table></div></section>
+    </div>
+    <section class="card"><h2>By week</h2>
+      ${S.metrics.length ? `<div class="tbl"><table><thead><tr><th>Week of</th>${TARGETS.map(t => `<th>${esc(t.label.split(" (")[0])}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${S.metrics.slice().reverse().map(m => `<tr><td><input type="date" id="m-w-${m.id}" data-bind="metrics:${m.id}:week" value="${esc(m.week)}"></td>
+        ${TARGETS.map(t => { const v = m[t.k], has = v !== "" && v != null; const st = !has ? "" : t.ok(num(v)) ? "good" : t.near(num(v)) ? "warn" : "bad";
+          return `<td><input type="number" step="0.01" id="m-${t.k}-${m.id}" data-bind="metrics:${m.id}:${t.k}" value="${esc(v ?? "")}" style="max-width:90px">${st ? `<br><span class="pill ${st}">${st === "good" ? "on target" : st === "warn" ? "close" : "fix"}</span>` : ""}</td>`; }).join("")}
+        <td><button class="btn sm ghost" data-act="delWeek" data-id="${m.id}">✕</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No weeks yet. Click “Add this week”; video counts are filled in for you from your Videos board.</div>`}
+    </section>
+    <section class="card"><h2>Taxes</h2><p class="small">TikTok sends a 1099-K above $20,000 and 200 transactions a year (some states set lower thresholds), but all profit is taxable regardless. Keep receipts for product, shipping and tools from day one. This isn't tax advice.</p></section>`;
+}
+
+/* ---- Rule check ---- */
+function vCheck() {
+  return `<div class="head"><div class="stack"><h1>Rule check</h1><p>Paste any script, caption, listing or LIVE plan. The checker flags claims and wording that get videos, listings or the whole shop removed.</p></div></div>
+    <div class="grid two"><section class="card"><label class="f">Text to check<textarea id="chkText" style="min-height:220px" data-live="check" placeholder="Paste a script, caption or listing…">${esc(UI.chk || "")}</textarea></label>
+      <h3>Does this post use…</h3>
+      <label class="f inline"><input type="checkbox" id="chkVoice">An AI voice or AI avatar</label>
+      <label class="f inline"><input type="checkbox" id="chkVis">AI-generated or heavily AI-edited images or video</label>
+      <label class="f inline"><input type="checkbox" id="chkDemo">AI showing the product doing something</label>
+      <button class="btn ai" data-act="aiCheck">Ask AI for a second opinion</button></section>
+    <section class="card"><h2>Result</h2><div id="chkOut" class="stack"></div></section></div>
+    <section class="card"><h2>Never do this</h2><div class="tbl"><table><tbody>${[
+      ["Use AI to show the product doing something the real one can't", "Misleading content is banned even when labeled"],
+      ["Have an AI avatar describe a “customer experience” that never happened", "Invented testimonials count as misleading"],
+      ["Post before/after results you can't prove", "Gets videos and listings removed"],
+      ["Copy another seller's video or images", "Infringement reports hit your Account Health Rating"],
+      ["Make health, weight-loss or medical claims", "Restricted claims, often category-gated"],
+      ["Ship late or cancel orders", "Late dispatch over 10% triggers enforcement"],
+      ["Put links, QR codes or “buy on Amazon” in videos or listings", "Off-platform redirection gets content removed"]].map(r => `<tr><td>${r[0]}</td><td class="muted">${r[1]}</td></tr>`).join("")}</tbody></table></div></section>`;
+}
+function liveCheck() {
+  const out = $("#chkOut"); if (!out) return;
+  const t = $("#chkText").value; UI.chk = t;
+  const iss = scanText(t);
+  if ($("#chkVoice").checked || $("#chkVis").checked) iss.unshift({ sev: "warn", msg: "Turn on the AI-generated content toggle when you post (tap Post → more options). Also turn on the commercial content disclosure; one doesn't replace the other." });
+  if ($("#chkDemo").checked) iss.unshift({ sev: "bad", msg: "Only show the real product working. AI demos of what it does are misleading even when labeled. Film it yourself." });
+  out.innerHTML = !t.trim() && !iss.length ? `<p class="muted">Paste text to see results.</p>` : iss.length ? issuesHTML(iss) : `<div class="alert good"><div class="grow">No rule problems found. Still fact-check every product claim yourself.</div></div>`;
+}
+
+/* ---- Settings ---- */
+function vSettings() {
+  const s = S.settings, key = AI.key();
+  const setupDone = SETUP.filter(x => S.plan[x[0]]).length;
+  return `<div class="head"><div class="stack"><h1>Settings</h1><p>Your shop details, AI connection and backups.</p></div></div>
+    <div class="grid two">
+    <section class="card"><h2>Your shop</h2><div class="fields" style="grid-template-columns:1fr 1fr">
+      <label class="f">Brand name<input type="text" id="set-brand" data-bind="settings::brand" value="${esc(s.brand)}"></label>
+      <label class="f">Niche<input type="text" id="set-niche" data-bind="settings::niche" value="${esc(s.niche)}" placeholder="e.g. small-space kitchen"></label>
+      <label class="f">Referral fee %<input type="number" step="0.1" id="set-ref" data-bind="settings::referralPct" value="${esc(s.referralPct)}"></label>
+      <label class="f">Affiliate commission %<input type="number" step="0.5" id="set-com" data-bind="settings::commissionPct" value="${esc(s.commissionPct)}"></label>
+      <label class="f">30-day plan start<input type="date" id="set-start" data-bind="settings::startDate" value="${esc(s.startDate)}"></label></div>
+      <p class="small muted">The published referral fee is 6%; many sellers report 8% on most non-food categories since Aug 4, 2026. Use the rate on your settlement statement. Refund admin fee: 20% of the referral fee, max $5 per SKU.</p></section>
+    <section class="card"><h2>AI connection</h2>
+      <p class="small">Now using: <b>${esc(AI.label())}</b></p>
+      <label class="f">How to write with AI<select id="set-ai" data-bind="settings::aiMode">${opt("auto", s.aiMode, "Automatic (best available)")}${opt("claude", s.aiMode, "Claude, built in (when opened on claude.ai)")}${opt("gemini", s.aiMode, "Gemini with my free API key")}${opt("manual", s.aiMode, "Copy & paste into any chatbot")}</select></label>
+      <label class="f">Free Gemini API key (optional, stays on this device)<input type="password" id="set-key" value="${esc(key)}" placeholder="Paste key from aistudio.google.com"></label>
+      <div class="row"><button class="btn sm" data-act="saveKey">Save key</button>${key ? `<button class="btn sm ghost" data-act="clearKey">Remove key</button>` : ""}<a class="btn sm" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get a free key</a></div>
+      <label class="f">Gemini model<input type="text" id="set-model" data-bind="settings::geminiModel" value="${esc(s.geminiModel)}"></label>
+      <p class="small muted">Opened on claude.ai, the studio uses Claude on your own account with no key. Anywhere else, add a free Gemini key or use copy & paste with ChatGPT, Claude or Gemini.</p></section>
+    <section class="card"><h2>Account setup <span class="pill">${setupDone}/${SETUP.length}</span></h2>${SETUP.map(t => `<label class="check${S.plan[t[0]] ? " done" : ""}"><input type="checkbox" id="pl-${t[0]}" data-plan="${t[0]}"${S.plan[t[0]] ? " checked" : ""}><span>${esc(t[1])}</span></label>`).join("")}
+      <p class="small muted">Top rejection causes: names or addresses that don't match across documents, prohibited products, a screenshot instead of the IRS letter, a bank account in the wrong name.</p>
+      <a class="btn sm" href="https://seller-us.tiktok.com/" target="_blank" rel="noopener">Open Seller Center</a></section>
+    <section class="card"><h2>Backup</h2><p class="small">${Cloud.state === "on" ? "Your data saves to your Claude account automatically and follows you to other devices." : "Your data is saved in this browser. Export a backup now and then."}</p>
+      <div class="row"><button class="btn" data-act="export">Export backup</button><button class="btn" data-act="import">Import backup</button></div>
+      <details><summary class="small">Danger zone</summary><div class="row" style="margin-top:8px"><button class="btn sm" data-act="resetAsk">Erase everything</button><span id="resetConfirm"></span></div></details></section>
+    </div>`;
+}
+
+/* ============ actions ============ */
+const A = {
+  start() { S.settings.startDate = todayISO(); save(["settings"]); render(); toast("Day 1 starts today"); },
+  clearEx() { for (const k of ["products", "videos", "hooks", "creators", "listings"]) S[k] = S[k].filter(x => !x.example); UI.product = UI.video = null; save(); render(); toast("Examples cleared"); },
+  addProduct() { const p = { id: uid(), name: "New product", price: "", landed: "", shipping: "", status: "idea", checks: {}, research: { comments: "", reviews: "", insights: "" }, suppliers: [] }; S.products.push(p); UI.product = p.id; save(["products"]); render(); setTimeout(() => { const el = $(`#p-name-${p.id}`); if (el) { el.focus(); el.select(); } }, 30); },
+  pickProduct(id) { UI.product = id; render(); },
+  delProduct(id) { if (!confirmTwice("delProduct" + id)) return; S.products = S.products.filter(p => p.id !== id); UI.product = null; save(["products"]); render(); },
+  addSupplier(id) { prod(id).suppliers = prod(id).suppliers || []; prod(id).suppliers.push({ id: uid(), name: "Supplier " + (prod(id).suppliers.length + 1) }); save(["products"]); render(); },
+  delSupplier(k) { const [pid, sid] = k.split(":"); const p = prod(pid); p.suppliers = p.suppliers.filter(s => s.id !== sid); save(["products"]); render(); },
+  mineComments(id) { const p = prod(id); if (!p.research?.comments?.trim()) return toast("Paste some comments first");
+    ai(`${productCtx(p)}\n\nHere are comments from top TikTok videos selling this kind of product. Group them into buying reasons, objections and questions. Then say which objection appears most and suggest a video that answers it. Be concise, use short bullet lists.\n\nCOMMENTS:\n${p.research.comments.slice(0, 12000)}`, "Mining comments",
+      t => { p.research.insights = (p.research.insights ? p.research.insights + "\n\n" : "") + "From comments:\n" + t.trim(); }); },
+  mineReviews(id) { const p = prod(id); if (!p.research?.reviews?.trim()) return toast("Paste some reviews first");
+    ai(`${productCtx(p)}\n\nHere are 1–3 star reviews of competing products. List the top five complaints, most common first. For each, write one TikTok hook in the form "Unlike the cheap ones, this doesn't…" that we could only use if our product truly avoids the problem.\n\nREVIEWS:\n${p.research.reviews.slice(0, 12000)}`, "Mining reviews",
+      t => { p.research.insights = (p.research.insights ? p.research.insights + "\n\n" : "") + "From reviews:\n" + t.trim(); }); },
+  angles(id) { const p = prod(id); ai(`${productCtx(p)}\n\nGive me 10 different people who would buy this and the problem each one has. Format: numbered list, "Person — problem — one video idea". Each person will become a TikTok video series.`, "Finding buyer angles", t => { p.angles = t.trim(); }); },
+  supplierMsg(id) { const p = prod(id); ai(`${productCtx(p)}\n\nWrite a short, polite message to a supplier (Alibaba or a US wholesaler) for a new US TikTok Shop seller. Ask for: unit price at 50 and at 500 units, sample cost and shipping time to the US, production lead time, packed weight and dimensions, and whether they can ship within a few days. Keep it under 120 words. Only output the message.`, "Writing supplier message", t => { p.supplierMsg = t.trim(); }); },
+  /* content */
+  weekplan() {
+    const vs = videoStats(); const p = prod(UI.product) || S.products.find(x => !x.example) || S.products[0];
+    if (!p) { toast("Add a product first"); return go("products"); }
+    const recent = vs.ps.slice(-14).map(v => `- "${v.hook}" (${(FORMATS.find(f => f[0] === v.format) || [, "?"])[1]}): ${num(v.views)} views, ${num(v.hold3)}% 3-sec hold, ${num(v.orders)} orders`).join("\n");
+    openForm("Plan this week", `<p class="small muted">The studio adds last week's video stats automatically. Paste top comments to make the new hooks answer real questions.</p>
+      <label class="f">Product${productSelect('id="wpProd"', p.id)}</label>
+      <label class="f">Last week's top comments (optional)<textarea id="wpComments" placeholder="Paste comments…"></textarea></label>
+      <div class="out small">${esc(recent || "No posted videos with stats yet. The plan will start fresh.")}</div>`, "Write 20 hooks + 7 scripts", () => {
+      const pp = prod($("#wpProd").value) || p, com = $("#wpComments").value.trim();
+      ai(`${productCtx(pp)}\n\nYou plan a week of TikTok Shop videos. ${RULES_FOR_AI}\n\nLast week's videos and stats:\n${recent || "(none yet)"}\n${com ? "\nTop comments from last week:\n" + com.slice(0, 8000) : ""}\n\nDo two things based on what worked:\n1) Under the heading HOOKS, write 20 new hooks under 10 words each as a numbered list.\n2) Then write 7 scripts. Start each with a line "SCRIPT n" then lines "FORMAT: <one of: Problem → solution | I tried… honest review | Satisfying demo | Reply to a comment | 3 reasons / 3 uses>", "HOOK: <hook>", then the script for about 20 seconds with timings: hook (0–2s), problem (2–5s), product solves it on camera (5–15s), call to action to tap the orange cart (15–20s). Include shot directions in [brackets].`, "Planning your week", t => {
+        const [hpart, ...rest] = t.split(/^\s*(?:#+\s*)?\**\s*SCRIPT\s*1\b.*$/im);
+        const hooks = parseList(hpart).slice(0, 25); hooks.forEach(h => S.hooks.push({ id: uid(), productId: pp.id, text: h.text, style: h.style || "", used: false }));
+        const scriptsText = rest.length ? "SCRIPT 1\n" + rest.join("") : "";
+        const blocks = scriptsText ? splitBlocks(scriptsText, "SCRIPT") : [];
+        blocks.forEach(b => S.videos.push(newVideo(pp.id, field(b, "HOOK"), fmtKey(field(b, "FORMAT")), b.replace(/^.*(FORMAT|HOOK)\s*:.*$/gim, "").trim())));
+        if (!blocks.length && !hooks.length) S.videos.push(newVideo(pp.id, "", "", t.trim()));
+        UI.contentMode = "board"; TAB = "content"; toast(`Added ${hooks.length} hooks and ${blocks.length} video drafts`);
+      });
+    });
+  },
+  newScript() {
+    const p = prod(UI.product) || S.products[0]; if (!p) { toast("Add a product first"); return go("products"); }
+    openForm("Write a script", `<div class="fields"><label class="f">Product${productSelect('id="nsProd"', p.id)}</label><label class="f">Format<select id="nsFmt">${FORMATS.map(f => opt(f[0], "problem", f[1])).join("")}</select></label></div>
+      <label class="f">Hook (optional)<input type="text" id="nsHook" placeholder="Leave blank and AI writes one"></label>`, "Write script", () => {
+      const v = newVideo($("#nsProd").value || p.id, $("#nsHook").value.trim(), $("#nsFmt").value, ""); S.videos.push(v); UI.video = v.id; A.scriptFor(v.id);
+    });
+  },
+  scriptFor(id) {
+    const v = S.videos.find(x => x.id === id), p = prod(v.productId), f = FORMATS.find(x => x[0] === v.format) || FORMATS[0];
+    ai(`${productCtx(p)}\n\n${RULES_FOR_AI}\n\nWrite a TikTok script for this product in the "${f[1]}" format (${f[2]}, ${f[3]}). Structure: hook (0–2s), problem (2–5s), product solves it on camera (5–15s), call to action to tap the orange cart (15–20s); adjust timings to the format. Include shot directions in [brackets] and on-screen text in {braces}.${v.hook ? `\nUse this exact hook: "${v.hook}"` : "\nStart with a line 'HOOK: <hook under 10 words>'."}`, "Writing script", t => {
+      const h = field(t, "HOOK"); if (h && !v.hook) v.hook = h.replace(/^["“]|["”]$/g, ""); v.script = t.replace(/^\s*\**HOOK\**\s*:.*$/im, "").trim(); UI.video = v.id; TAB = "content"; UI.contentMode = "board"; });
+  },
+  caption(id) {
+    const v = S.videos.find(x => x.id === id), p = prod(v.productId);
+    ai(`${productCtx(p)}\n\n${RULES_FOR_AI}\n\nWrite one TikTok caption for this video. Under 150 characters plus 3–5 relevant hashtags (include #tiktokshop). Only output the caption.\nHook: ${v.hook}\nScript:\n${(v.script || "").slice(0, 2000)}`, "Writing caption", t => { v.caption = t.trim().replace(/^["“]|["”]$/g, ""); });
+  },
+  captions() {
+    const need = S.videos.filter(v => !v.caption && v.status !== "posted" && (v.hook || v.script));
+    if (!need.length) { toast("Every video already has a caption"); return go("content"); }
+    const list = need.slice(0, 14);
+    ai(`${RULES_FOR_AI}\n\nWrite one TikTok caption for each video below: under 150 characters plus 3–5 relevant hashtags (include #tiktokshop). Answer with lines "CAPTION n: <caption>" in the same order.\n\n${list.map((v, i) => `VIDEO ${i + 1} (product: ${pname(v.productId)}): ${v.hook}\n${(v.script || "").slice(0, 400)}`).join("\n\n")}`, "Writing captions", t => {
+      let n = 0; list.forEach((v, i) => { const m = t.match(new RegExp("CAPTION\\s*" + (i + 1) + "\\s*:\\s*(.+)", "i")); if (m) { v.caption = m[1].trim(); n++; } });
+      TAB = "content"; toast(`Captioned ${n} videos. Schedule them in TikTok Studio.`); });
+  },
+  reply() {
+    const p = prod(UI.product) || S.products.find(x => !x.example) || S.products[0]; if (!p) { toast("Add a product first"); return go("products"); }
+    openForm("Turn a comment into a video", `<label class="f">Product${productSelect('id="rpProd"', p.id)}</label><label class="f">Paste a real comment, question or objection<textarea id="rpText"></textarea></label>`, "Write reply video", () => {
+      const c = $("#rpText").value.trim(); if (!c) return toast("Paste a comment first"); const pp = prod($("#rpProd").value) || p;
+      ai(`${productCtx(pp)}\n\n${RULES_FOR_AI}\n\nA viewer commented: "${c}"\nWrite a 15–30 second reply-with-video TikTok script that answers it honestly by showing the real product. Start with "HOOK: <first line>", then the script with shot directions in [brackets], ending with a call to tap the orange cart. Then write "REPLY: <a short friendly text reply to the comment>".`, "Writing reply video", t => {
+        const v = newVideo(pp.id, field(t, "HOOK"), "reply", t.replace(/^\s*\**(HOOK|REPLY)\**\s*:.*$/gim, "").trim()); v.notes = field(t, "REPLY"); v.script = (v.notes ? "Text reply: " + v.notes + "\n\n" : "") + v.script; S.videos.push(v); UI.video = v.id; TAB = "content"; UI.contentMode = "board"; });
+    });
+  },
+  repurpose(id) {
+    const v = S.videos.find(x => x.id === id), p = prod(v.productId);
+    ai(`${productCtx(p)}\n\n${RULES_FOR_AI}\n\nHere is a TikTok that got ${num(v.views).toLocaleString()} views (${num(v.hold3)}% watched past 3 seconds).\nHOOK: ${v.hook}\nSCRIPT:\n${v.script || "(same footage, not written down)"}\n\nWrite 5 variations with different hooks and the same middle. For each, write "VARIATION n", "HOOK: <new hook under 10 words>", then the opening 2–3 seconds with shot directions in [brackets]. Keep the rest identical.`, "Writing 5 variations", t => {
+      const blocks = splitBlocks(t, "VARIATION"); let n = 0;
+      blocks.forEach(b => { const h = field(b, "HOOK"); if (!h) return; n++; S.videos.push(newVideo(v.productId, h.replace(/^["“]|["”]$/g, ""), v.format, b.replace(/^.*HOOK\s*:.*$/im, "").trim() + (v.script ? "\n\n--- Same middle as original ---\n" + v.script : ""))); });
+      v.repurposed = true; TAB = "content"; UI.contentMode = "board"; toast(`Added ${n} variations to your board`); });
+  },
+  hooks30() {
+    const p = prod($("#hookProd").value); if (!p) return toast("Pick a product first");
+    ai(`I sell ${p.name} for $${num(p.price).toFixed(2)} to ${p.buyer || "people who need it"}. Their biggest problem is ${p.problem || "(infer it from the product)"}. ${p.specs ? "Details: " + p.specs + "." : ""}\nWrite 30 TikTok hooks under 10 words: 10 problem-first, 10 curiosity, 10 'I tried…' style. Put each group under its own heading (Problem-first, Curiosity, I tried) as a numbered list. No false claims. ${RULES_FOR_AI}`, "Writing 30 hooks", t => {
+      const hs = parseList(t); hs.forEach(h => S.hooks.push({ id: uid(), productId: p.id, text: h.text, style: h.style, used: false })); toast(`Added ${hs.length} hooks`); });
+  },
+  addHook() { openForm("Add a hook", `<label class="f">Hook<input type="text" id="ahText"></label>`, "Add", () => { const t = $("#ahText").value.trim(); if (t) { S.hooks.push({ id: uid(), productId: UI.product || "", text: t, style: "", used: false }); save(["hooks"]); render(); } }); },
+  addHookText(_, el) { S.hooks.push({ id: uid(), productId: UI.product || "", text: el.dataset.text, style: "formula", used: false }); save(["hooks"]); render(); toast("Added. Fill in the brackets."); },
+  delHook(id) { S.hooks = S.hooks.filter(h => h.id !== id); save(["hooks"]); render(); },
+  hookToVideo(id) { const h = S.hooks.find(x => x.id === id); h.used = true; const v = newVideo(h.productId || (S.products[0] || {}).id || "", h.text, "", ""); S.videos.push(v); UI.video = v.id; UI.contentMode = "board"; save(); render(); },
+  addVideo() { const v = newVideo(UI.product || (S.products[0] || {}).id || "", "", "", ""); S.videos.push(v); UI.video = v.id; save(["videos"]); render(); },
+  pickVideo(id) { UI.video = id; render(); window.scrollTo(0, 0); },
+  closeVideo() { UI.video = null; render(); },
+  delVideo(id) { if (!confirmTwice("delVideo" + id)) return; S.videos = S.videos.filter(v => v.id !== id); UI.video = null; save(["videos"]); render(); },
+  /* listing */
+  addListing() { const l = { id: uid(), productId: UI.product || (S.products.find(p => !p.example) || S.products[0] || {}).id || "", title: "", bullets: "" }; S.listings.push(l); UI.listing = l.id; save(["listings"]); render(); },
+  pickListing(id) { UI.listing = id; render(); },
+  delListing(id) { if (!confirmTwice("delListing" + id)) return; S.listings = S.listings.filter(l => l.id !== id); UI.listing = null; save(["listings"]); render(); },
+  writeListing(id) {
+    const L = S.listings.find(l => l.id === id), p = prod(L.productId); if (!p) return toast("Pick the product first");
+    ai(`${productCtx(p)}\n\n${RULES_FOR_AI}\n\nWrite a TikTok Shop listing. Title: 25–200 characters, brand + product type + key details, no "best seller", no all caps, no seller name or URLs. Then a 5-bullet description of at least 30 words total, plain facts only, include materials and dimensions if given, and answer the buyer's main worries.\nAnswer exactly in this format:\nTITLE: <title>\nBULLETS:\n- <bullet>\n- <bullet>\n- <bullet>\n- <bullet>\n- <bullet>`, "Writing listing", t => {
+      L.title = (field(t, "TITLE") || "").replace(/^["“]|["”]$/g, ""); const after = t.split(/BULLETS\s*:?/i)[1] || t; L.bullets = after.split(/\r?\n/).filter(l => /^\s*(?:[-*•]\s|\d+[.)]\s?)/.test(l)).map(cleanLine).join("\n"); UI.listing = L.id; });
+  },
+  checkImages() { const f = $("#fileImages"); f.value = ""; f.click(); },
+  /* creators */
+  addCreator() { S.creators.push({ id: uid(), handle: "@", followers: "", niche: S.settings.niche || "", status: "found", commission: S.settings.commissionPct, sentOn: "", videos: 0, gmv: 0, invite: "" }); save(["creators"]); render(); },
+  delCreator(id) { if (!confirmTwice("delCreator" + id)) return; S.creators = S.creators.filter(c => c.id !== id); save(["creators"]); render(); },
+  invite(id) {
+    const c = S.creators.find(x => x.id === id), p = S.products.find(x => !x.example && x.status !== "dropped") || S.products[0];
+    const follow = c.status === "sample sent" && c.sentOn && daysBetween(c.sentOn, todayISO()) >= 7;
+    ai(`${productCtx(p)}\n\nWrite a short, personal TikTok DM (under 80 words) ${follow ? `following up with creator ${c.handle} who received a free sample ${daysBetween(c.sentOn, todayISO())} days ago but hasn't posted yet. Friendly, no pressure, offer help with talking points.` : `inviting creator ${c.handle} (${c.niche || "same niche"}, ${num(c.followers).toLocaleString()} followers) to promote this product through my TikTok Shop affiliate plan at ${num(c.commission)}% commission with a free sample.`} Sound like a real small-business owner, not a template. Only output the message.`, follow ? "Writing follow-up" : "Writing invite", t => { c.invite = t.trim(); if (c.status === "found") c.status = "invited"; });
+  },
+  /* live */
+  liveplan() {
+    const p = prod($("#liveProd").value); if (!p) return toast("Pick a product first");
+    const len = num($("#liveLen").value) || 45, offer = $("#liveOffer").value.trim();
+    ai(`${productCtx(p)}\n\n${RULES_FOR_AI}\n\nBuild a run-of-show for a ${len}-minute TikTok Shop LIVE. Include: 1) a minute-by-minute outline that demos the product continuously and reminds hosts to pin the product and greet commenters by name; 2) 5 demo segments; 3) 10 common objections with short honest answers; 4) a reason to buy now${offer ? ` using this offer: ${offer}` : " using a time-limited discount"}. Use clear headings.`, "Writing run-of-show", t => { S.lives.push({ id: uid(), productId: p.id, date: todayISO(), plan: t.trim() }); });
+  },
+  delLive(id) { S.lives = S.lives.filter(l => l.id !== id); save(["lives"]); render(); },
+  /* numbers */
+  addWeek() {
+    const wk = new Date(); wk.setDate(wk.getDate() - ((wk.getDay() + 6) % 7)); const w = wk.toISOString().slice(0, 10);
+    const vs = videoStats(); const rec = vs.ps.filter(v => v.date && daysBetween(v.date, todayISO()) < 7 && !v.example);
+    const avg = (k) => { const a = rec.filter(v => num(v[k]) > 0); return a.length ? +(a.reduce((s, v) => s + num(v[k]), 0) / a.length).toFixed(1) : ""; };
+    const live = S.products.find(p => !p.example && ["testing", "winner"].includes(p.status));
+    S.metrics.push({ id: uid(), week: w, hold3: avg("hold3"), ctr: avg("ctr"), conv: "", profit: live ? +econ(live).organic.toFixed(2) : "", late: "", aff: S.creators.filter(c => !c.example).reduce((s, c) => s + num(c.videos), 0) || "" });
+    save(["metrics"]); render(); toast("Filled in what the studio knows. Add the rest from Seller Center.");
+  },
+  delWeek(id) { S.metrics = S.metrics.filter(m => m.id !== id); save(["metrics"]); render(); },
+  /* check */
+  aiCheck() {
+    const t = $("#chkText").value.trim(); if (!t) return toast("Paste text first");
+    ai(`You review TikTok Shop content for US policy problems before posting. Flag anything that could be removed: unprovable or absolute claims, health/medical/weight-loss claims, before/after claims, fake testimonials, off-platform links or marketplace mentions, 'dupe', 'best seller', all caps titles, and missing AI or commercial disclosures. For each problem, quote it and give a safer rewrite. If it's fine, say so in one line.\n\nTEXT:\n${t.slice(0, 8000)}`, "Reviewing", r => { UI.chk = t; openForm("AI second opinion", `<div class="out">${esc(r)}</div>`, "Done", () => {}); });
+  },
+  /* settings */
+  saveKey() { lsSet(LS_KEY, $("#set-key").value.trim()); render(); toast("Key saved on this device"); },
+  clearKey() { try { localStorage.removeItem(LS_KEY); } catch (e) {} render(); },
+  async export() {
+    const data = JSON.stringify(Object.assign({}, S, { exportedAt: new Date().toISOString() }), null, 1), name = `orange-cart-backup-${todayISO()}.json`;
+    try { const dl = window.claude && window.claude.use ? await claude.use("downloads") : null; if (dl) { await dl.save({ filename: name, data }); toast("Backup saved"); return; } } catch (e) { if (e && e.code === "cancelled") return; }
+    try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+    catch (e) {}
+    openForm("Backup", `<p class="small muted">If no file downloaded, copy this text and save it in a note.</p><textarea readonly style="min-height:220px">${esc(data)}</textarea>`, "Copy backup text", () => copy(data));
+  },
+  import() { const f = $("#fileImport"); f.value = ""; f.click(); },
+  resetAsk() { $("#resetConfirm").innerHTML = `<button class="btn sm" data-act="resetYes" style="color:var(--bad)">Yes, erase all my data</button>`; },
+  resetYes() { S = normalize(blank()); save(); render(); toast("Erased"); }
+};
+function newVideo(productId, hook, format, script) { return { id: uid(), productId, hook: hook || "", format: format || "", script: script || "", caption: "", status: "idea", date: "", views: "", hold3: "", ctr: "", orders: "", flags: { cart: false, commercial: false, aiVoice: false, aiVisual: false, aiLabel: false } }; }
+function fmtKey(s) { s = String(s || "").toLowerCase(); return s.includes("tried") ? "tried" : s.includes("demo") || s.includes("satisf") ? "demo" : s.includes("reply") || s.includes("comment") ? "reply" : s.includes("reason") || s.includes("uses") ? "three" : s ? "problem" : ""; }
+const pending = {};
+function confirmTwice(k) { if (pending[k] && Date.now() - pending[k] < 4000) { delete pending[k]; return true; } pending[k] = Date.now(); toast("Click again to confirm"); return false; }
+function openForm(title, html, cta, onGo) {
+  const dlg = $("#dlg"), body = $("#dlgBody");
+  body.innerHTML = `<h2>${esc(title)}</h2>${html}<div class="row"><button class="btn primary" id="fGo">${esc(cta)}</button><button class="btn ghost" id="fCancel">Cancel</button></div>`;
+  $("#fCancel").onclick = () => dlg.close();
+  $("#fGo").onclick = () => { dlg.close(); onGo(); };
+  if (!dlg.open) dlg.showModal();
+}
+
+/* ============ events ============ */
+function setPath(obj, path, val) { const ks = path.split("."); let o = obj; for (let i = 0; i < ks.length - 1; i++) { o[ks[i]] = o[ks[i]] || {}; o = o[ks[i]]; } o[ks[ks.length - 1]] = val; }
+function bindValue(el) {
+  const [col, id, path] = el.dataset.bind.split(":");
+  const target = col === "settings" ? S.settings : (S[col] || []).find(x => x.id === id); if (!target) return null;
+  const val = el.type === "checkbox" ? el.checked : el.type === "number" ? (el.value === "" ? "" : num(el.value)) : el.value;
+  setPath(target, path, val); return { col, target };
+}
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.bind) {
+    const r = bindValue(el); if (!r) return; save([r.col]);
+    if (TAB === "products" && /price|landed|shipping/.test(el.dataset.bind)) { const p = r.target; const box = $("#econ"); if (box) box.innerHTML = "<h2>Margin check</h2>" + econHTML(p); }
+    if (el.dataset.live === "listing") liveListing();
+    if (TAB === "content" && /:(hook|script|caption)$/.test(el.dataset.bind)) { const box = $("#vIssues"); if (box) { const iss = videoIssues(r.target); box.innerHTML = iss.length ? issuesHTML(iss) : `<div class="alert good"><div class="grow">Ready to post.</div></div>`; } }
+  }
+  if (el.dataset.sup) { const [pid, sid, f] = el.dataset.sup.split(":"); const s = prod(pid).suppliers.find(x => x.id === sid); s[f] = el.type === "number" ? (el.value === "" ? "" : num(el.value)) : el.value; save(["products"]); }
+  if (el.dataset.live === "check" || (TAB === "check" && el.type === "checkbox")) liveCheck();
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.bind) {
+    const r = bindValue(el); if (!r) return; save([r.col]);
+    if (el.dataset.bind === "settings::aiMode") toast("AI: " + AI.label());
+    setTimeout(render, 0); return;
+  }
+  if (el.dataset.sup) { setTimeout(render, 0); return; }
+  if (el.dataset.plan) { S.plan[el.dataset.plan] = el.checked; save(["plan"]); render(); return; }
+  if (el.dataset.check) { const [pid, k] = el.dataset.check.split(":"); const p = prod(pid); p.checks = p.checks || {}; p.checks[k] = el.checked; save(["products"]); render(); return; }
+  if (el.dataset.flag) { const [vid, k] = el.dataset.flag.split(":"); const v = S.videos.find(x => x.id === vid); v.flags = v.flags || {}; v.flags[k] = el.checked; save(["videos"]); render(); return; }
+  if (el.dataset.hookused) { const h = S.hooks.find(x => x.id === el.dataset.hookused); h.used = el.checked; save(["hooks"]); render(); return; }
+  if (el.id === "fileImport" && el.files[0]) {
+    const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !Array.isArray(d.products)) throw 0; S = normalize(d); save(); render(); toast("Backup imported"); } catch (_) { toast("That file isn't an Orange Cart backup"); } }; r.readAsText(el.files[0]);
+  }
+  if (el.id === "fileImages" && el.files.length) checkImageFiles([...el.files]);
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go],[data-act],[data-mode],[data-copy],[data-copy-field]"); if (!t) return;
+  if (t.dataset.go) return go(t.dataset.go);
+  if (t.dataset.mode) { UI.contentMode = t.dataset.mode; return render(); }
+  if (t.dataset.copy !== undefined) return copy(t.dataset.copy);
+  if (t.dataset.copyField) { const f = document.getElementById(t.dataset.copyField); return copy(f ? f.value : ""); }
+  const fn = A[t.dataset.act]; if (fn) fn(t.dataset.id, t);
+});
+$("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) $("#dlg").close(); });
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (TABS.some(t => t[0] === h)) go(h); });
+
+render();
+AI.init();
+Cloud.init();
+</script>
